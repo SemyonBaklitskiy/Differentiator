@@ -7,5 +7,8 @@ int main() {
     print_tree(tree);
     printf("\n");
 
+    print_tree(Diff(tree));
+    printf("\n");
+
     return 0;
 }

@@ -5,10 +5,11 @@ enum nodeType {
 };
 
 enum operatorType {
-    ADD  = 1,
-    SUB  = 2,
-    MUL  = 3,
-    DIV  = 4,
+    NOTHING = 0,
+    ADD     = 1,
+    SUB     = 2,
+    MUL     = 3,
+    DIV     = 4,
 };
 
 struct Node {
@@ -25,3 +26,4 @@ struct Node {
 char* get_str();
 struct Node* get_tree(const char* str);
 void print_tree(struct Node* node);
+struct Node* Diff(const struct Node* node);

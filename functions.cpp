@@ -10,6 +10,7 @@ static struct Node* Get_E();
 static struct Node* Get_T();
 static struct Node* Get_P();
 static struct Node* Get_N();
+static struct Node* create_node(const int type, const int number, const operatorType op, struct Node* left, struct Node* right);
 
 char* get_str() {
     char* str = NULL;
@@ -32,13 +33,16 @@ static struct Node* Get_G(const char* str) {
 
 void print_tree(struct Node* node) { //TODO do better
     if ((node->left == NULL) && (node->right == NULL)) {
-        if (node->type == VARIABLE) {
-            printf("x");
+        switch (node->type) {
+        case VARIABLE: 
+            printf("%c", node->var);
+            break;
 
-        } else if (node->type == NUMBER) {
+        case NUMBER: 
             printf("%d", node->number);
+            break;
 
-        } else {
+        default:
             assert(0);
         }
 
@@ -49,17 +53,25 @@ void print_tree(struct Node* node) { //TODO do better
 
     print_tree(node->left);
     if (node->type == OPERATOR) {
-        if (node->op == ADD) {
+        switch (node->op) {
+        case ADD:
             printf("+");
+            break;
 
-        } else if (node->op == SUB) {
+        case SUB: 
             printf("-");
+            break;
 
-        } else if (node->op == MUL) {
+        case MUL: 
             printf("*");
+            break;
 
-        } else {
+        case DIV: 
             printf("/");
+            break;
+
+        default:
+            assert(0);
         }
     }
     print_tree(node->right);
@@ -67,6 +79,45 @@ void print_tree(struct Node* node) { //TODO do better
     printf(")");
 
     return;
+}
+
+struct Node* Diff(const struct Node* node) {
+    switch (node->type) {
+    case NUMBER:
+        return create_node(NUMBER, 0, NOTHING, NULL, NULL);
+        break;
+
+    case VARIABLE:
+        return create_node(NUMBER, 1, NOTHING, NULL, NULL);
+        break;
+
+    case OPERATOR:
+        switch (node->op) {
+        case ADD:
+            return create_node(OPERATOR, 0, ADD, Diff(node->left), Diff(node->right));
+            break;
+
+        case SUB:
+            return create_node(OPERATOR, 0, SUB, Diff(node->left), Diff(node->right)); 
+            break;
+
+        case MUL:
+            return create_node(OPERATOR, 0, ADD, create_node(OPERATOR, 0, MUL, Diff(node->left), node->right), create_node(OPERATOR, 0, MUL, node->left, Diff(node->right)));
+            break;
+
+        case DIV:
+            return create_node(OPERATOR, 0, DIV, create_node(OPERATOR, 0, SUB, create_node(OPERATOR, 0, MUL, Diff(node->left), node->right), create_node(OPERATOR, 0, MUL, node->left, Diff(node->right))), create_node(OPERATOR, 0, MUL, node->right, node->right));
+            break;
+
+        default:
+            assert(0);
+        }
+
+    default:
+        assert(0);
+    }
+
+    return NULL;
 }
 
 static struct Node* Get_N() {
@@ -174,6 +225,41 @@ static struct Node* Get_P() {
 
     } else {
         node = Get_N();
+    }
+
+    return node;
+}
+
+static struct Node* create_node(const int type, const int number, const operatorType op, struct Node* left, struct Node* right) {
+    struct Node* node = (struct Node*)calloc(1, sizeof(Node));
+
+    switch (type) {
+    case NUMBER:
+        node->type = NUMBER;
+        node->number = number; 
+        node->left = left;
+        node->right = right;
+
+        break;
+
+    case VARIABLE:
+        node->type = VARIABLE;
+        node->var = 'x';
+        node->left = left;
+        node->right = right;
+
+        break;
+
+    case OPERATOR:
+        node->type = OPERATOR;
+        node->op = op;
+        node->left = left;
+        node->right = right;
+
+        break;
+
+    default:
+        assert(0);
     }
 
     return node;
