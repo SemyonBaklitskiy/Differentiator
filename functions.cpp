@@ -30,6 +30,45 @@ static struct Node* Get_G(const char* str) {
     return node;
 }
 
+void print_tree(struct Node* node) { //TODO do better
+    if ((node->left == NULL) && (node->right == NULL)) {
+        if (node->type == VARIABLE) {
+            printf("x");
+
+        } else if (node->type == NUMBER) {
+            printf("%d", node->number);
+
+        } else {
+            assert(0);
+        }
+
+        return;
+    }
+
+    printf("(");
+
+    print_tree(node->left);
+    if (node->type == OPERATOR) {
+        if (node->op == ADD) {
+            printf("+");
+
+        } else if (node->op == SUB) {
+            printf("-");
+
+        } else if (node->op == MUL) {
+            printf("*");
+
+        } else {
+            printf("/");
+        }
+    }
+    print_tree(node->right);
+
+    printf(")");
+
+    return;
+}
+
 static struct Node* Get_N() {
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
     if ((*s >= '0') && (*s <= '9')) {
@@ -64,9 +103,13 @@ static struct Node* Get_E() {
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
     node->type = OPERATOR;
 
+    bool hasAddOrSub = false;
+
     struct Node* nodeLeft = Get_T();
 
     while((*s == '+') || (*s == '-')) {
+        hasAddOrSub = true;
+
         if (*s == '+') {
             node->op = ADD;
 
@@ -82,6 +125,9 @@ static struct Node* Get_E() {
         node->right = nodeRight;
     }
 
+    if (!hasAddOrSub)
+        return nodeLeft;
+
     return node;
 }
 
@@ -89,9 +135,13 @@ static struct Node* Get_T() {
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
     node->type = OPERATOR;
 
+    bool hasMulOrDiv = false;
+
     struct Node* nodeLeft = Get_P();
 
     while((*s == '*') || (*s == '/')) {
+        hasMulOrDiv = true;
+
         if (*s == '*') {
             node->op = MUL;
 
@@ -106,6 +156,9 @@ static struct Node* Get_T() {
         node->left = nodeLeft;
         node->right = nodeRight;
     }
+
+    if (!hasMulOrDiv)
+        return nodeLeft;
 
     return node;
 }
