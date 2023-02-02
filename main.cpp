@@ -13,6 +13,8 @@ int main() {
     print_tree(diffTree);
     printf("\n");
 
+    free_tree(diffTree);
+    free_tree(tree);
     free(str);
 
     return 0;
