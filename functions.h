@@ -15,7 +15,7 @@ enum operatorType {
 struct Node {
     nodeType type;
 
-    int number;
+    double number;
     operatorType op;
     char var;
     
