@@ -24,7 +24,7 @@ struct Node* get_tree(const char* str) {
     return Get_G(str);
 }
 
-void print_tree(struct Node* node) {
+void print_tree(struct Node* node) { //TODO maybe can be better
     if ((node->left == NULL) && (node->right == NULL)) {
         switch (node->type) {
         case VARIABLE: 
@@ -56,7 +56,7 @@ void print_tree(struct Node* node) {
     if (node->type == OPERATOR) {
         switch (node->op) {
         case MUL:
-            if ((node->left->type == OPERATOR) && ((node->left->op == ADD) || ((node->left->op == SUB)))) {
+            if (node->left->type == OPERATOR) {
                 printf("(");
                 hasOpenBracket = true;
             }
@@ -104,7 +104,7 @@ void print_tree(struct Node* node) {
         }
     }
 
-    if ((node->right->type == OPERATOR) && ((node->right->op == ADD) || ((node->right->op == SUB)))) {
+    if (node->right->type == OPERATOR) {
         printf("(");
         hasOpenBracket = true;
     }
@@ -119,7 +119,7 @@ void print_tree(struct Node* node) {
     return;
 }
 
-struct Node* Diff(const struct Node* node) { //TODO fix and DSL
+struct Node* Diff(const struct Node* node) { //TODO DSL
     switch (node->type) {
     case NUMBER:
         return create_node(NUMBER, 0, node->var, NOTHING, NULL, NULL);
@@ -139,7 +139,7 @@ struct Node* Diff(const struct Node* node) { //TODO fix and DSL
 
             free_tree(dupLeftNode);
             free_tree(dupRightNode);
-            
+
             return result;
             break;
         }
@@ -161,7 +161,7 @@ struct Node* Diff(const struct Node* node) { //TODO fix and DSL
             struct Node* dupLeftNode = dup_node(node->left);
             struct Node* dupRightNode = dup_node(node->right);
 
-            struct Node* result = create_node(OPERATOR, 0, node->var, ADD, create_node(OPERATOR, 0, node->var, MUL, Diff(dupLeftNode), dup_node(dupRightNode)), create_node(OPERATOR, 0, node->var, MUL, dup_node(dupLeftNode), Diff(dupRightNode)));
+            struct Node* result = create_node(OPERATOR, 0, node->var, ADD, create_node(OPERATOR, 0, node->var, MUL, Diff(dupLeftNode), dup_node(node->right)), create_node(OPERATOR, 0, node->var, MUL, dup_node(node->left), Diff(dupRightNode)));
 
             free_tree(dupLeftNode);
             free_tree(dupRightNode);
@@ -174,7 +174,7 @@ struct Node* Diff(const struct Node* node) { //TODO fix and DSL
             struct Node* dupLeftNode = dup_node(node->left);
             struct Node* dupRightNode = dup_node(node->right);
 
-            struct Node* result = create_node(OPERATOR, 0, node->var, DIV, create_node(OPERATOR, 0, node->var, SUB, create_node(OPERATOR, 0, node->var, MUL, Diff(dupLeftNode), dup_node(dupRightNode)), create_node(OPERATOR, 0, node->var, MUL, dup_node(dupLeftNode), Diff(dupRightNode))), create_node(OPERATOR, 0, node->var, MUL, dup_node(dupRightNode), dup_node(dupRightNode)));
+            struct Node* result = create_node(OPERATOR, 0, node->var, DIV, create_node(OPERATOR, 0, node->var, SUB, create_node(OPERATOR, 0, node->var, MUL, Diff(dupLeftNode), dup_node(node->right)), create_node(OPERATOR, 0, node->var, MUL, dup_node(node->left), Diff(dupRightNode))), create_node(OPERATOR, 0, node->var, MUL, dup_node(node->right), dup_node(node->right)));
 
             free_tree(dupLeftNode);
             free_tree(dupRightNode);
