@@ -23,14 +23,6 @@ struct Node* get_tree(const char* str) {
     return Get_G(str);
 }
 
-static struct Node* Get_G(const char* str) {
-    s = str;
-    struct Node* node = Get_E();
-    assert(*s == '\0');
-
-    return node;
-}
-
 void print_tree(struct Node* node) { //TODO do better
     if ((node->left == NULL) && (node->right == NULL)) {
         switch (node->type) {
@@ -81,7 +73,7 @@ void print_tree(struct Node* node) { //TODO do better
     return;
 }
 
-struct Node* Diff(const struct Node* node) {
+struct Node* Diff(const struct Node* node) { //TODO fix
     switch (node->type) {
     case NUMBER:
         return create_node(NUMBER, 0, NOTHING, NULL, NULL);
@@ -120,8 +112,164 @@ struct Node* Diff(const struct Node* node) {
     return NULL;
 }
 
+void free_tree(struct Node* node) {
+    if (node == NULL)
+        return;
+
+    free_tree(node->left);
+    free_tree(node->right);
+
+    free(node);
+    return;
+}
+
+static struct Node* Get_G(const char* str) {
+    s = str;
+    struct Node* node = Get_E();
+    assert(*s == '\0');
+
+    return node;
+}
+
+static struct Node* Get_E() { //TODO make better
+    struct Node* node = (struct Node*)calloc(1, sizeof(Node));
+    node->type = OPERATOR;
+
+    bool hasAddOrSub = false;
+    int amount = 0;
+
+    struct Node* nodeLeft = Get_T();
+
+    while((*s == '+') || (*s == '-')) {
+        hasAddOrSub = true;
+
+        if (amount >= 1) {
+            struct Node* newNode = (struct Node*)calloc(1, sizeof(Node));
+            newNode->left = node->left;
+            newNode->right = node->right;
+            newNode->type = OPERATOR;
+            newNode->op = node->op;
+
+            if (*s == '+') {
+                node->op = ADD;
+                ++amount;
+
+            } else {
+                node->op = SUB;
+                ++amount;
+            }
+
+            ++s;
+            struct Node* nodeRight = Get_T();
+
+            node->left = newNode;
+            node->right = nodeRight;
+
+        } else {
+            if (*s == '+') {
+                node->op = ADD;
+                ++amount;
+
+            } else {
+                node->op = SUB;
+                ++amount;
+            }
+
+            ++s;
+            struct Node* nodeRight = Get_T();
+
+            node->left = nodeLeft;
+            node->right = nodeRight;  
+        }
+    }
+
+    if (!hasAddOrSub) {
+        free(node);
+        return nodeLeft;
+    }
+
+    return node;
+}
+
+static struct Node* Get_T() { //TODO make better
+    struct Node* node = (struct Node*)calloc(1, sizeof(Node));
+    node->type = OPERATOR;
+
+    bool hasMulOrDiv = false;
+    int amount = 0;
+
+    struct Node* nodeLeft = Get_P();
+
+    while((*s == '*') || (*s == '/')) {
+        hasMulOrDiv = true;
+
+        if (amount >= 1) {
+            struct Node* newNode = (struct Node*)calloc(1, sizeof(Node));
+            newNode->left = node->left;
+            newNode->right = node->right;
+            newNode->type = OPERATOR;
+            newNode->op = node->op;
+
+            if (*s == '*') {
+                node->op = MUL;
+                ++amount;
+
+            } else {
+                node->op = DIV;
+                ++amount;
+            }
+
+            ++s;
+            struct Node* nodeRight = Get_P();
+
+            node->left = newNode;
+            node->right = nodeRight;
+
+        } else {
+            if (*s == '*') {
+                node->op = MUL;
+                ++amount;
+
+            } else {
+                node->op = DIV;
+                ++amount;
+            }
+
+            ++s;
+            struct Node* nodeRight = Get_P();
+
+            node->left = nodeLeft;
+            node->right = nodeRight;  
+        }
+    }
+
+    if (!hasMulOrDiv) {
+        free(node);
+        return nodeLeft;
+    }
+
+    return node;
+}
+
+static struct Node* Get_P() {
+    struct Node* node = NULL;
+
+    if (*s == '(') {
+        ++s;
+        node = Get_E();
+        assert(*s == ')');
+        ++s;
+
+    } else {
+        node = Get_N();
+    }
+
+    return node;
+}
+
 static struct Node* Get_N() {
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
+
     if ((*s >= '0') && (*s <= '9')) {
         int number = 0;
 
@@ -150,86 +298,6 @@ static struct Node* Get_N() {
     return node;
 }
 
-static struct Node* Get_E() {
-    struct Node* node = (struct Node*)calloc(1, sizeof(Node));
-    node->type = OPERATOR;
-
-    bool hasAddOrSub = false;
-
-    struct Node* nodeLeft = Get_T();
-
-    while((*s == '+') || (*s == '-')) {
-        hasAddOrSub = true;
-
-        if (*s == '+') {
-            node->op = ADD;
-
-        } else {
-            node->op = SUB;
-        }
-
-        ++s;
-
-        struct Node* nodeRight = Get_T();
-
-        node->left = nodeLeft;
-        node->right = nodeRight;
-    }
-
-    if (!hasAddOrSub)
-        return nodeLeft;
-
-    return node;
-}
-
-static struct Node* Get_T() {
-    struct Node* node = (struct Node*)calloc(1, sizeof(Node));
-    node->type = OPERATOR;
-
-    bool hasMulOrDiv = false;
-
-    struct Node* nodeLeft = Get_P();
-
-    while((*s == '*') || (*s == '/')) {
-        hasMulOrDiv = true;
-
-        if (*s == '*') {
-            node->op = MUL;
-
-        } else {
-            node->op = DIV;
-        }
-
-        ++s;
-
-        struct Node* nodeRight = Get_P();
-
-        node->left = nodeLeft;
-        node->right = nodeRight;
-    }
-
-    if (!hasMulOrDiv)
-        return nodeLeft;
-
-    return node;
-}
-
-static struct Node* Get_P() {
-    struct Node* node = NULL;
-
-    if (*s == '(') {
-        ++s;
-        node = Get_E();
-        assert(*s == ')');
-        ++s;
-
-    } else {
-        node = Get_N();
-    }
-
-    return node;
-}
-
 static struct Node* create_node(const int type, const int number, const operatorType op, struct Node* left, struct Node* right) {
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
 
@@ -246,7 +314,7 @@ static struct Node* create_node(const int type, const int number, const operator
         node->type = VARIABLE;
         node->var = 'x';
         node->left = left;
-        node->right = right;
+        node->right =right;
 
         break;
 

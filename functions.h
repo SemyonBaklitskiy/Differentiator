@@ -27,3 +27,4 @@ char* get_str();
 struct Node* get_tree(const char* str);
 void print_tree(struct Node* node);
 struct Node* Diff(const struct Node* node);
+void free_tree(struct Node* node);

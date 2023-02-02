@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "functions.h"
 
 int main() {
@@ -7,8 +8,12 @@ int main() {
     print_tree(tree);
     printf("\n");
 
-    print_tree(Diff(tree));
+    struct Node* diffTree = Diff(tree);
+
+    print_tree(diffTree);
     printf("\n");
+
+    free(str);
 
     return 0;
 }
