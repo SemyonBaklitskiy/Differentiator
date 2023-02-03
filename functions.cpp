@@ -222,7 +222,7 @@ struct Node* Diff(const struct Node* node) { //TODO DSL
             struct Node* dupLeftNode = dup_node(node->left);
             struct Node* dupRightNode = dup_node(node->right);
 
-            struct Node* result = create_node(OPERATOR, 0, node->var, DIV, create_node(OPERATOR, 0, node->var, SUB, create_node(OPERATOR, 0, node->var, MUL, Diff(dupLeftNode), dup_node(node->right)), create_node(OPERATOR, 0, node->var, MUL, dup_node(node->left), Diff(dupRightNode))), create_node(OPERATOR, 0, node->var, MUL, dup_node(node->right), dup_node(node->right)));
+            struct Node* result = create_node(OPERATOR, 0, node->var, DIV, create_node(OPERATOR, 0, node->var, SUB, create_node(OPERATOR, 0, node->var, MUL, Diff(dupLeftNode), dup_node(node->right)), create_node(OPERATOR, 0, node->var, MUL, dup_node(node->left), Diff(dupRightNode))), create_node(OPERATOR, 0, node->var, POWER, dup_node(node->right), create_node(NUMBER, 2.0, node->var, NOTHING, NULL, NULL)));
 
             free_tree(dupLeftNode);
             free_tree(dupRightNode);
