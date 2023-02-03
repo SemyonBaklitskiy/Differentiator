@@ -1,7 +1,8 @@
 enum nodeType {
-    VARIABLE = 1,
-    NUMBER   = 2,
-    OPERATOR = 3,
+    VARIABLE     = 1,
+    NUMBER       = 2,
+    OPERATOR     = 3,
+    TRIGONOMETRY_OR_LOG = 4,
 };
 
 enum operatorType {
@@ -10,6 +11,12 @@ enum operatorType {
     SUB     = 2,
     MUL     = 3,
     DIV     = 4,
+    POWER   = 5,
+    TG      = 6,
+    CTG     = 7,
+    SIN     = 8,
+    COS     = 9,
+    LN      = 10,
 };
 
 struct Node {
