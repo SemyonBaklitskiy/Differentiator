@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include "functions.h"
+#include "error.h"
 
 static const char* s = NULL;
 static const char* names[] = {"sin", "cos", "tg", "ctg", "ln"};
@@ -18,14 +19,39 @@ static struct Node* Get_N();
 static struct Node* dup_node(struct Node* node);
 static struct Node* create_node(const int type, const double number, const char var, const operatorType op, struct Node* left, struct Node* right);
 
+#define PRINT_ERROR(error) processor_of_errors(error, __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define CHECK_NULL(pointer, error, ...) if (pointer == NULL) { PRINT_ERROR(error); __VA_ARGS__; }
+
 char* get_str() {
     char* str = NULL;
+    printf("Enter f(x) or Q (q) to quit the programm.\n");
+    printf("f(x) = ");
     scanf("%m[^\n]s", &str);
+
+    if ((strcmp(str, "q") == 0) || (strcmp(str, "Q") == 0)) {
+        free(str);
+        return NULL;
+    }
+
+    while (str == NULL) {
+        printf("Please enter f(x) or enter Q (q) to quit the programm\n");
+        printf("f(x) = ");
+        scanf("%m[^\n]s", &str);
+
+        if (str == NULL) {
+            continue;
+
+        } else if ((strcmp(str, "q") == 0) || (strcmp(str, "Q") == 0)) {
+            free(str);
+            return NULL;
+        }
+    }
 
     return str;
 }
 
 struct Node* get_tree(const char* str) {
+    CHECK_NULL(str, NULL_GIVEN, return NULL);
     return Get_G(str);
 }
 
@@ -375,31 +401,45 @@ void free_tree(struct Node* node) {
     free_tree(node->right);
 
     free(node);
+    node = NULL;
     return;
 }
 
-static struct Node* Get_G(const char* str) {
+static struct Node* Get_G(const char* str) { //TODO make (x+1)(x+2) mb here
     s = str;
+
     struct Node* node = Get_E();
-    assert(*s == '\0');
+
+    CHECK_NULL(node, NO_ERRORS, return NULL);
+
+    if (*s != '\0') {
+        PRINT_ERROR(NOT_FOUND_OPERATOR);
+        free_tree(node);
+        return NULL;
+    }
 
     return node;
 }
 
 static struct Node* Get_E() { //TODO make better
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
+    CHECK_NULL(node, MEM_ERROR, return NULL);
+
     node->type = OPERATOR;
 
     bool hasAddOrSub = false;
     int amount = 0;
 
     struct Node* nodeLeft = Get_T();
+    CHECK_NULL(nodeLeft, NO_ERRORS, free_tree(node); return NULL);
 
     while((*s == '+') || (*s == '-')) {
         hasAddOrSub = true;
 
         if (amount >= 1) {
             struct Node* newNode = (struct Node*)calloc(1, sizeof(Node));
+            CHECK_NULL(newNode, MEM_ERROR, free_tree(node); return NULL);
+
             newNode->left = node->left;
             newNode->right = node->right;
             newNode->type = OPERATOR;
@@ -415,9 +455,11 @@ static struct Node* Get_E() { //TODO make better
             }
 
             ++s;
-            struct Node* nodeRight = Get_T();
 
             node->left = newNode;
+            struct Node* nodeRight = Get_T();
+            CHECK_NULL(nodeRight, NO_ERRORS, free_tree(node); return NULL);
+
             node->right = nodeRight;
 
         } else {
@@ -431,9 +473,10 @@ static struct Node* Get_E() { //TODO make better
             }
 
             ++s;
-            struct Node* nodeRight = Get_T();
-
             node->left = nodeLeft;
+            struct Node* nodeRight = Get_T();
+            CHECK_NULL(nodeRight, NO_ERRORS, free_tree(node); return NULL);
+
             node->right = nodeRight;  
         }
     }
@@ -448,18 +491,23 @@ static struct Node* Get_E() { //TODO make better
 
 static struct Node* Get_T() { //TODO make better
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
+    CHECK_NULL(node, MEM_ERROR, return NULL);
+
     node->type = OPERATOR;
 
     bool hasMulOrDiv = false;
     int amount = 0;
 
     struct Node* nodeLeft = Get_Pow();
+    CHECK_NULL(nodeLeft, NO_ERRORS, free_tree(node); return NULL);
 
     while ((*s == '*') || (*s == '/')) {
         hasMulOrDiv = true;
 
         if (amount >= 1) {
             struct Node* newNode = (struct Node*)calloc(1, sizeof(Node));
+            CHECK_NULL(newNode, MEM_ERROR, free_tree(node); return NULL);
+
             newNode->left = node->left;
             newNode->right = node->right;
             newNode->type = OPERATOR;
@@ -475,9 +523,10 @@ static struct Node* Get_T() { //TODO make better
             }
 
             ++s;
-            struct Node* nodeRight = Get_Pow();
-
             node->left = newNode;
+
+            struct Node* nodeRight = Get_Pow();
+            CHECK_NULL(nodeRight, NO_ERRORS, free_tree(node); return NULL);
             node->right = nodeRight;
 
         } else {
@@ -491,9 +540,11 @@ static struct Node* Get_T() { //TODO make better
             }
 
             ++s;
-            struct Node* nodeRight = Get_Pow();
 
             node->left = nodeLeft;
+            struct Node* nodeRight = Get_Pow();
+            CHECK_NULL(nodeRight, NO_ERRORS, free_tree(node); return NULL);
+
             node->right = nodeRight;  
         }
     }
@@ -506,13 +557,14 @@ static struct Node* Get_T() { //TODO make better
     return node;
 }
 
-static struct Node* Get_Pow() {
+static struct Node* Get_Pow() { //TODO make better
     struct Node* node = NULL;
 
     bool hasPower = false;
     int amount = 0;
 
     struct Node* nodeLeft = Get_P();
+    CHECK_NULL(nodeLeft, NO_ERRORS, return NULL);
 
     while (*s == '^') {
         hasPower = true;
@@ -520,17 +572,28 @@ static struct Node* Get_Pow() {
 
         if (amount >= 1) {
             struct Node* newNode = (struct Node*)calloc(1, sizeof(Node));
+            CHECK_NULL(newNode, MEM_ERROR, return NULL);
+
             newNode->type = OPERATOR;
             newNode->op = POWER;
             newNode->left = node->right;
-            newNode->right = Get_P();
+
+            struct Node* rightNode = Get_P();
+            CHECK_NULL(rightNode, NO_ERRORS, free_tree(newNode); return NULL);
+            newNode->right = rightNode;
 
             node->right = newNode;
 
         } else {
             node = (struct Node*)calloc(1, sizeof(Node));
+            CHECK_NULL(node, MEM_ERROR, return NULL);
+
             node->left = nodeLeft;
-            node->right = Get_P();
+            
+            struct Node* rightNode = Get_P();
+            CHECK_NULL(rightNode, NO_ERRORS, free_tree(node); return NULL);
+            node->right = rightNode;
+
             node->op = POWER;
             node->type = OPERATOR;
         }
@@ -549,8 +612,16 @@ static struct Node* Get_P() {
 
     if (*s == '(') {
         ++s;
-        node = Get_E();
-        assert(*s == ')');
+        node = Get_E(); //TODO check;
+
+        CHECK_NULL(node, NO_ERRORS, return NULL);
+
+        if (*s != ')') {
+            PRINT_ERROR(PAIR_BRACKETS);
+            free_tree(node);
+            return NULL;
+        }
+
         ++s;
 
     } else {
@@ -560,8 +631,10 @@ static struct Node* Get_P() {
     return node;
 }
 
-static struct Node* Get_N() {
+static struct Node* Get_N() { //TODO make better;
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
+    CHECK_NULL(node, MEM_ERROR, return NULL);
+
     double number = 0.0;
     int amountOfSymbols = 0;
 
@@ -589,7 +662,7 @@ static struct Node* Get_N() {
         char word[4] = " ";
         bool stop = false;
 
-        while (!stop && counter + 1 < 4) {
+        while ((!stop) && (counter + 1 < 4) && (counter < strlen(s))) {
             word[counter] = *s;
             ++counter;
             word[counter] = '\0';
@@ -601,18 +674,28 @@ static struct Node* Get_N() {
             ++s;
         }
 
-        if (!stop) 
-            assert(0);
+        if (!stop) {
+            PRINT_ERROR(FORBIDDEN_SYMBOL);
+            free_tree(node);
+            return NULL; 
+        }
         
-        if (*s != '(')
-            assert(0);
+        if (*s != '(') {
+            PRINT_ERROR(NO_BRACKET_IN_FUNCTION);
+            free_tree(node);
+            return NULL;
+        }
 
         ++s;
 
         get_node(word, node);
+        CHECK_NULL(node->left, NO_ERRORS, free_tree(node); return NULL);
 
-        if (*s != ')')
-            assert(0);
+        if (*s != ')') {
+            PRINT_ERROR(PAIR_BRACKETS);
+            free_tree(node);
+            return NULL;
+        }
 
         ++s;
 
@@ -737,4 +820,5 @@ void get_node(const char* functionName, struct Node* node) {
     } else {
 
     }
+
 }

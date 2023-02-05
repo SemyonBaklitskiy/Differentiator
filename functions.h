@@ -35,3 +35,5 @@ struct Node* get_tree(const char* str);
 void print_tree(struct Node* node);
 struct Node* Diff(const struct Node* node);
 void free_tree(struct Node* node);
+
+#define RETURN_IF_NULL(pointer, ...) if (pointer == NULL) { __VA_ARGS__; }
