@@ -11,7 +11,7 @@ enum operatorType {
     SUB     = 2,
     MUL     = 3,
     DIV     = 4,
-    POWER   = 5,
+    POW     = 5,
     TG      = 6,
     CTG     = 7,
     SIN     = 8,

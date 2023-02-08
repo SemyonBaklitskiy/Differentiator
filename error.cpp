@@ -22,7 +22,7 @@ void processor_of_errors(errors error, const char* fileName, const char* functio
             break;
 
         case FORBIDDEN_SYMBOL:
-            printf("Syntax error in input: forbiden symbol/symbols was/were found. Or no expression before/after operator.\nIn file %s, in function %s, on the line %d: return NULL called.\n", ERROR_LOCATION);
+            printf("Syntax error in input: forbiden symbol was found. Or no expression before/after operator.\nIn file %s, in function %s, on the line %d: return NULL called.\n", ERROR_LOCATION);
             break;
 
         case NO_BRACKET_IN_FUNCTION:
