@@ -6,10 +6,13 @@
 #include "error.h"
 
 static const char* s = NULL;
-static const char* names[] = {"sin", "cos", "tg", "ctg", "ln"};
+static const char* allowedFunctionNames[] = {"sin", "cos", "tg", "ctg", "ln"};
+static const size_t maxLengthOfFunctionNames = 3;
 
+static void clean_stdinput();
+static char* get_function_name();
 static bool match(const char* str);
-void get_node(const char* functionName, struct Node* node);
+static struct Node* get_function_node();
 static struct Node* Get_G(const char* str);
 static struct Node* Get_E();
 static struct Node* Get_T();
@@ -28,14 +31,11 @@ char* get_str() {
     printf("f(x) = ");
     scanf("%m[^\n]s", &str);
 
-    if ((strcmp(str, "q") == 0) || (strcmp(str, "Q") == 0)) {
-        free(str);
-        return NULL;
-    }
-
     while (str == NULL) {
         printf("Please enter f(x) or enter Q (q) to quit the programm\n");
         printf("f(x) = ");
+
+        clean_stdinput();
         scanf("%m[^\n]s", &str);
 
         if (str == NULL) {
@@ -45,6 +45,11 @@ char* get_str() {
             free(str);
             return NULL;
         }
+    }
+
+    if ((strcmp(str, "q") == 0) || (strcmp(str, "Q") == 0)) {
+        free(str);
+        return NULL;
     }
 
     return str;
@@ -61,7 +66,7 @@ void print_tree(struct Node* node) { //TODO maybe can be better
         return;
     }
 
-    if (node->type == TRIGONOMETRY_OR_LOG) {
+    if (node->type == FUNCTION) {
         switch (node->op) {
         case SIN:
             printf("sin(");
@@ -178,7 +183,7 @@ void print_tree(struct Node* node) { //TODO maybe can be better
         }
     }
 
-    if ((node->type != TRIGONOMETRY_OR_LOG) && (node->right->type == OPERATOR)) {
+    if ((node->type != FUNCTION) && (node->right->type == OPERATOR)) {
         printf("(");
         hasOpenBracket = true;
     }
@@ -293,7 +298,7 @@ struct Node* Diff(const struct Node* node) { //TODO DSL
                     struct Node* rightArg = dup_node(node->right);
 
                     result->left = create_node(OPERATOR, node->number, node->var, POWER, leftArg, rightArg);
-                    struct Node* lnRightArg = create_node(TRIGONOMETRY_OR_LOG, node->number, node->var, LN, dup_node(rightArg), NULL);
+                    struct Node* lnRightArg = create_node(FUNCTION, node->number, node->var, LN, dup_node(rightArg), NULL);
                     struct Node* rightNode = create_node(OPERATOR, node->number, node->var, MUL, dup_node(leftArg), lnRightArg);
                     result->right = Diff(rightNode); 
 
@@ -307,7 +312,7 @@ struct Node* Diff(const struct Node* node) { //TODO DSL
             break;
     }
 
-    case TRIGONOMETRY_OR_LOG:
+    case FUNCTION:
         switch (node->op) {
             case SIN: {
                 struct Node* result = (struct Node*)calloc(1, sizeof(Node));
@@ -316,7 +321,7 @@ struct Node* Diff(const struct Node* node) { //TODO DSL
                 result->op = MUL;
 
                 struct Node* arg = dup_node(node->left);
-                result->left = create_node(TRIGONOMETRY_OR_LOG, node->number, node->var, COS, arg, NULL);
+                result->left = create_node(FUNCTION, node->number, node->var, COS, arg, NULL);
 
                 result->right = Diff(arg); //mb dup
                 
@@ -332,7 +337,7 @@ struct Node* Diff(const struct Node* node) { //TODO DSL
 
                 result->left = create_node(NUMBER, -1.0, node->var, NOTHING, NULL, NULL);
                 struct Node* arg = dup_node(node->left);
-                result->right = create_node(OPERATOR, node->number, node->var, MUL, create_node(TRIGONOMETRY_OR_LOG, node->number, node->var, SIN, arg, NULL), Diff(arg));
+                result->right = create_node(OPERATOR, node->number, node->var, MUL, create_node(FUNCTION, node->number, node->var, SIN, arg, NULL), Diff(arg));
 
                 return result;
                 break;
@@ -346,8 +351,8 @@ struct Node* Diff(const struct Node* node) { //TODO DSL
 
                 struct Node* arg = dup_node(node->left);
 
-                tmp->left = create_node(TRIGONOMETRY_OR_LOG, node->number, node->var, SIN, arg, NULL);
-                tmp->right = create_node(TRIGONOMETRY_OR_LOG, node->number, node->var, COS, dup_node(arg), NULL); //mb dup arg
+                tmp->left = create_node(FUNCTION, node->number, node->var, SIN, arg, NULL);
+                tmp->right = create_node(FUNCTION, node->number, node->var, COS, dup_node(arg), NULL); //mb dup arg
 
                 struct Node* result = Diff(tmp);
 
@@ -364,8 +369,8 @@ struct Node* Diff(const struct Node* node) { //TODO DSL
 
                 struct Node* arg = dup_node(node->left);
 
-                tmp->left = create_node(TRIGONOMETRY_OR_LOG, node->number, node->var, COS, arg, NULL);
-                tmp->right = create_node(TRIGONOMETRY_OR_LOG, node->number, node->var, SIN, dup_node(arg), NULL); //mb dup arg
+                tmp->left = create_node(FUNCTION, node->number, node->var, COS, arg, NULL);
+                tmp->right = create_node(FUNCTION, node->number, node->var, SIN, dup_node(arg), NULL); //mb dup arg
 
                 struct Node* result = Diff(tmp);
 
@@ -401,7 +406,7 @@ void free_tree(struct Node* node) {
     free_tree(node->right);
 
     free(node);
-    node = NULL;
+    //node = NULL; 
     return;
 }
 
@@ -457,6 +462,8 @@ static struct Node* Get_E() { //TODO make better
             ++s;
 
             node->left = newNode;
+            node->right = NULL;
+
             struct Node* nodeRight = Get_T();
             CHECK_NULL(nodeRight, NO_ERRORS, free_tree(node); return NULL);
 
@@ -524,6 +531,7 @@ static struct Node* Get_T() { //TODO make better
 
             ++s;
             node->left = newNode;
+            node->right = NULL;
 
             struct Node* nodeRight = Get_Pow();
             CHECK_NULL(nodeRight, NO_ERRORS, free_tree(node); return NULL);
@@ -572,21 +580,21 @@ static struct Node* Get_Pow() { //TODO make better
 
         if (amount >= 1) {
             struct Node* newNode = (struct Node*)calloc(1, sizeof(Node));
-            CHECK_NULL(newNode, MEM_ERROR, return NULL);
+            CHECK_NULL(newNode, MEM_ERROR, free_tree(node); return NULL);
 
             newNode->type = OPERATOR;
             newNode->op = POWER;
             newNode->left = node->right;
 
-            struct Node* rightNode = Get_P();
-            CHECK_NULL(rightNode, NO_ERRORS, free_tree(newNode); return NULL);
-            newNode->right = rightNode;
-
             node->right = newNode;
+
+            struct Node* rightNode = Get_P();
+            CHECK_NULL(rightNode, NO_ERRORS, free_tree(node); return NULL);
+            newNode->right = rightNode;
 
         } else {
             node = (struct Node*)calloc(1, sizeof(Node));
-            CHECK_NULL(node, MEM_ERROR, return NULL);
+            CHECK_NULL(node, MEM_ERROR, free_tree(nodeLeft); return NULL);
 
             node->left = nodeLeft;
             
@@ -612,7 +620,7 @@ static struct Node* Get_P() {
 
     if (*s == '(') {
         ++s;
-        node = Get_E(); //TODO check;
+        node = Get_E();
 
         CHECK_NULL(node, NO_ERRORS, return NULL);
 
@@ -631,26 +639,35 @@ static struct Node* Get_P() {
     return node;
 }
 
-static struct Node* Get_N() { //TODO make better;
-    struct Node* node = (struct Node*)calloc(1, sizeof(Node));
-    CHECK_NULL(node, MEM_ERROR, return NULL);
+static struct Node* Get_N() {
+    struct Node* node = NULL;
 
     double number = 0.0;
     int amountOfSymbols = 0;
 
     if (sscanf(s, "%lf %n", &number, &amountOfSymbols) > 0) {
+        node = (struct Node*)calloc(1, sizeof(Node));
+        CHECK_NULL(node, MEM_ERROR, return NULL);
+
         node->left = NULL;
         node->right = NULL;
         node->type = NUMBER;
         node->number = number;
+        node->var = 0;
+        node->op = NOTHING;
 
         s+= amountOfSymbols;
 
     } else if ((*s == 'x') || (*s == 'X')) {
+        node = (struct Node*)calloc(1, sizeof(Node));
+        CHECK_NULL(node, MEM_ERROR, return NULL);
+
         node->left = NULL;
         node->right = NULL;
         node->type = VARIABLE;
         node->var = *s;
+        node->number = 0;
+        node->op = NOTHING;
 
         ++s;
 
@@ -658,47 +675,7 @@ static struct Node* Get_N() { //TODO make better;
         ++s;
 
     } else {
-        int counter = 0;
-        char word[4] = " ";
-        bool stop = false;
-
-        while ((!stop) && (counter + 1 < 4) && (counter < strlen(s))) {
-            word[counter] = *s;
-            ++counter;
-            word[counter] = '\0';
-
-            if (counter >= 2) {
-                stop = match(word);
-            }
-
-            ++s;
-        }
-
-        if (!stop) {
-            PRINT_ERROR(FORBIDDEN_SYMBOL);
-            free_tree(node);
-            return NULL; 
-        }
-        
-        if (*s != '(') {
-            PRINT_ERROR(NO_BRACKET_IN_FUNCTION);
-            free_tree(node);
-            return NULL;
-        }
-
-        ++s;
-
-        get_node(word, node);
-        CHECK_NULL(node->left, NO_ERRORS, free_tree(node); return NULL);
-
-        if (*s != ')') {
-            PRINT_ERROR(PAIR_BRACKETS);
-            free_tree(node);
-            return NULL;
-        }
-
-        ++s;
-
+        node = get_function_node();
     }
 
     return node;
@@ -706,6 +683,7 @@ static struct Node* Get_N() { //TODO make better;
 
 static struct Node* create_node(const int type, const double number, const char var, const operatorType op, struct Node* left, struct Node* right) {
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
+    CHECK_NULL(node, MEM_ERROR, return NULL);
 
     switch (type) {
     case NUMBER:
@@ -738,8 +716,8 @@ static struct Node* create_node(const int type, const double number, const char 
 
         break;
 
-    case TRIGONOMETRY_OR_LOG:
-        node->type = TRIGONOMETRY_OR_LOG;
+    case FUNCTION:
+        node->type = FUNCTION;
         node->op = op;
         node->left = left;
         node->number = number;
@@ -749,13 +727,14 @@ static struct Node* create_node(const int type, const double number, const char 
         break;
 
     default:
-        assert(0);
+        PRINT_ERROR(WRONG_TYPE);
+        return NULL;
     }
 
     return node;
 }
 
-static struct Node* dup_node(struct Node* node) {
+static struct Node* dup_node(struct Node* node) { //TODO check
     if (node == NULL)
         return NULL;
 
@@ -773,52 +752,96 @@ static struct Node* dup_node(struct Node* node) {
 }
 
 static bool match(const char* str) {
-    for (size_t index = 0; index < (sizeof(names) / sizeof(names[0])); ++index) {
-        if (strcmp(str, names[index]) == 0)
+    for (size_t index = 0; index < (sizeof(allowedFunctionNames) / sizeof(allowedFunctionNames[0])); ++index) {
+        if (strcmp(str, allowedFunctionNames[index]) == 0)
             return true;
     }
 
     return false;
 }
 
-void get_node(const char* functionName, struct Node* node) {
-    if (strcmp(functionName, "sin") == 0) {
-        node->type = TRIGONOMETRY_OR_LOG;
-        node->op = SIN;
-        node->right = NULL;
+static char* get_function_name() {
+    size_t counter = 0;
+    const size_t strLength = strlen(s);
 
-        node->left = Get_E(); //mb get_p
+    char* functionName = (char*)calloc(maxLengthOfFunctionNames + 1, sizeof(char));
+    CHECK_NULL(functionName, MEM_ERROR, return NULL);
 
-    } else if (strcmp(functionName, "cos") == 0) {
-        node->type = TRIGONOMETRY_OR_LOG;
-        node->op = COS;
-        node->right = NULL;
+    bool stop = false;
 
-        node->left = Get_E();
+    while ((!stop) && (counter < maxLengthOfFunctionNames) && (counter < strLength)) {
+        functionName[counter] = *s;
+        ++counter;
+        functionName[counter] = '\0';
 
-    } else if (strcmp(functionName, "tg") == 0) {
-        node->type = TRIGONOMETRY_OR_LOG;
-        node->op = TG;
-        node->right = NULL;
+        if (counter >= 2) 
+            stop = match(functionName);
 
-        node->left = Get_E();
-
-    } else if (strcmp(functionName, "ctg") == 0) {
-        node->type = TRIGONOMETRY_OR_LOG;
-        node->op = CTG;
-        node->right = NULL;
-
-        node->left = Get_E();
-    
-    } else if (strcmp(functionName, "ln") == 0) {
-        node->type = TRIGONOMETRY_OR_LOG;
-        node->op = LN;
-        node->right = NULL;
-
-        node->left = Get_E();
-
-    } else {
-
+        ++s;
     }
 
+    if (!stop) {
+        PRINT_ERROR(FORBIDDEN_SYMBOL);
+        free(functionName);
+        return NULL; 
+    }
+
+    return functionName;
+}
+
+static struct Node* get_function_node() {
+    char* functionName = get_function_name();
+    CHECK_NULL(functionName, NO_ERRORS, return NULL);
+    
+    if (*s != '(') {
+        PRINT_ERROR(NO_BRACKET_IN_FUNCTION);
+        free(functionName);
+        return NULL;
+    }
+
+    ++s;
+
+    struct Node* node = NULL; 
+    struct Node* nodeLeft = Get_E();
+
+    CHECK_NULL(nodeLeft, NO_ERRORS, free(functionName); return NULL);
+
+    if (strcmp(functionName, "sin") == 0) {
+        node = create_node(FUNCTION, 0.0, 0, SIN, nodeLeft, NULL);
+
+    } else if (strcmp(functionName, "cos") == 0) {
+        node = create_node(FUNCTION, 0.0, 0, COS, nodeLeft, NULL);
+
+    } else if (strcmp(functionName, "tg") == 0) {
+        node = create_node(FUNCTION, 0.0, 0, TG, nodeLeft, NULL);
+
+    } else if (strcmp(functionName, "ctg") == 0) {
+        node = create_node(FUNCTION, 0.0, 0, CTG, nodeLeft, NULL);
+    
+    } else if (strcmp(functionName, "ln") == 0) {
+        node = create_node(FUNCTION, 0.0, 0, LN, nodeLeft, NULL);
+
+    } else {
+        //add functions here
+    }
+
+    CHECK_NULL(node, NO_ERRORS, free(functionName); free_tree(nodeLeft); return NULL);
+
+    if (*s != ')') {
+        PRINT_ERROR(PAIR_BRACKETS);
+        free(functionName);
+        free_tree(node);
+        return NULL;
+    }
+
+    ++s;
+
+    free(functionName);
+    return node;
+}
+
+static void clean_stdinput() {
+    int str = getchar();
+    while ((str != EOF) && (str != '\n') && (str != '\0'))
+        str = getchar();
 }

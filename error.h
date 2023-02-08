@@ -7,6 +7,7 @@ enum errors {
     PAIR_BRACKETS          = 5,
     FORBIDDEN_SYMBOL       = 6,
     NO_BRACKET_IN_FUNCTION = 7,
+    WRONG_TYPE             = 8,
 };
 
 void processor_of_errors(errors error, const char* fileName, const char* functionName, const int line);

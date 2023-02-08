@@ -2,7 +2,7 @@ enum nodeType {
     VARIABLE     = 1,
     NUMBER       = 2,
     OPERATOR     = 3,
-    TRIGONOMETRY_OR_LOG = 4,
+    FUNCTION     = 4,
 };
 
 enum operatorType {
