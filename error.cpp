@@ -29,11 +29,11 @@ void processor_of_errors(errors error, const char* fileName, const char* functio
             printf("Syntax error in input: the argument of the functions must be in the pair brackets.\nIn file %s, in function %s, on the line %d: return NULL called.\n", ERROR_LOCATION);
             break;
 
-        case WRONG_TYPE:
-            printf("In file %s, in function %s, on the line %d: wrong type of node given as a parameter\n", ERROR_LOCATION);
+        case WRONG_TYPE_OR_OP_OR_FUNC:
+            printf("In file %s, in function %s, on the line %d: wrong type or operator or function of node\n", ERROR_LOCATION);
             break;
 
-        default:
+        default:  //TODO add division by zero
             break;
     }
 }

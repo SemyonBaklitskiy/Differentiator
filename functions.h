@@ -5,7 +5,7 @@ enum nodeType {
     FUNCTION     = 4,
 };
 
-enum operatorType {
+enum opAndFuncType {
     NOTHING = 0,
     ADD     = 1,
     SUB     = 2,
@@ -23,7 +23,7 @@ struct Node {
     nodeType type;
 
     double number;
-    operatorType op;
+    opAndFuncType op;
     char var;
     
     struct Node* left;
@@ -33,7 +33,7 @@ struct Node {
 char* get_str();
 struct Node* get_tree(const char* str);
 void print_tree(struct Node* node);
-struct Node* Diff(const struct Node* node);
+struct Node* get_diff_tree(struct Node* node);
 void free_tree(struct Node* node);
 
 #define RETURN_IF_NULL(pointer, ...) if (pointer == NULL) { __VA_ARGS__; }

@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 #include <string.h>
 #include "functions.h"
 #include "error.h"
@@ -12,7 +11,7 @@ static const size_t minFuncsLength = 2;
 static void clean_stdinput();
 static char* get_function_name(const char** s);
 static bool match(const char* str);
-static operatorType get_operator(const int symbol);
+static opAndFuncType get_operator(const int symbol);
 
 static struct Node* get_function_node(const char** s);
 static struct Node* Get_G(const char** str);
@@ -22,16 +21,22 @@ static struct Node* Get_Pow(const char** s);
 static struct Node* Get_P(const char** s);
 static struct Node* Get_N(const char** s);
 
-static struct Node* dup_node(struct Node* node);
-static struct Node* create_node(const nodeType type, const double number, const char var, const operatorType op, struct Node* left, struct Node* right);
+static struct Node* dup_node(const struct Node* node);
+static struct Node* create_node(const nodeType type, const double number, const char var, const opAndFuncType op, struct Node* left, struct Node* right);
+static struct Node* differentiate(struct Node* node);
 
 #define PRINT_ERROR(error) processor_of_errors(error, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define CHECK_NULL(pointer, error, ...) if (pointer == NULL) { PRINT_ERROR(error); __VA_ARGS__; }
 
-#define create_number(number) create_node(NUMBER, number, 0, NOTHING, NULL, NULL);
-#define create_var(var) create_node(VARIABLE, 0.0, var, NOTHING, NULL, NULL);
-#define create_operator(op, left, right) create_node(OPERATOR, 0.0, 0, op, left, right);
-#define create_function(func, left) create_node(FUNCTION, 0.0, 0, func, left, NULL);
+#define create_number(number) create_node(NUMBER, number, 0, NOTHING, NULL, NULL)
+#define create_var(var) create_node(VARIABLE, 0.0, var, NOTHING, NULL, NULL)
+#define create_operator(op, left, right) create_node(OPERATOR, 0.0, 0, op, left, right)
+#define create_function(func, left) create_node(FUNCTION, 0.0, 0, func, left, NULL)
+#define diff_mul(left, right) create_operator(ADD, create_operator(MUL, differentiate(left), dup_node(right)), create_operator(MUL, dup_node(left), differentiate(right)))
+#define diff_div(left, right) create_operator(DIV, create_operator(SUB, create_operator(MUL, differentiate(left), dup_node(right)), create_operator(MUL, dup_node(left), differentiate(right))), create_operator(POW, dup_node(right), create_number(2)))
+#define diff_pow_num(left, right) create_operator(MUL, create_number(right->number), create_operator(MUL, create_operator(POW, dup_node(left), create_number(right->number - 1.0)), differentiate(left)))
+#define diff_tg(left) create_operator(MUL, create_operator(DIV, create_number(1.0), create_operator(POW, create_function(COS, dup_node(left)), create_number(2.0))), differentiate(left))
+#define diff_ctg(left) create_operator(MUL, create_operator(DIV, create_number(-1.0), create_operator(POW, create_function(SIN, dup_node(left)), create_number(2.0))), differentiate(left))
 
 char* get_str() {
     char* str = NULL;
@@ -68,7 +73,7 @@ struct Node* get_tree(const char* str) {
     return Get_G(&str);
 }
 
-void print_tree(struct Node* node) { //TODO maybe can be better
+void print_tree(struct Node* node) { //TODO make better
     if (node == NULL) {
         printf(")");
         return;
@@ -206,203 +211,95 @@ void print_tree(struct Node* node) { //TODO maybe can be better
     return;
 }
 
-struct Node* Diff(const struct Node* node) { //TODO DSL and check x^x and add more functions
+struct Node* get_diff_tree(struct Node* node) {
+    CHECK_NULL(node, NULL_GIVEN, return NULL);
+    return differentiate(node);
+}
+
+static struct Node* differentiate(struct Node* node) {
     switch (node->type) {
     case NUMBER:
-        return create_node(NUMBER, 0, node->var, NOTHING, NULL, NULL);
+        return create_number(0);
         break;
 
     case VARIABLE:
-        return create_node(NUMBER, 1, node->var, NOTHING, NULL, NULL);
+        return create_number(1);
         break;
 
     case OPERATOR: 
         switch (node->op) {
-        case ADD: {
-            struct Node* dupLeftNode = dup_node(node->left);
-            struct Node* dupRightNode = dup_node(node->right);
-
-            struct Node* result = create_node(OPERATOR, 0, node->var, ADD, Diff(dupLeftNode), Diff(dupRightNode));
-
-            free_tree(dupLeftNode);
-            free_tree(dupRightNode);
-
-            return result;
+        case ADD:
+            return create_operator(ADD, differentiate(node->left), differentiate(node->right));
             break;
-        }
 
-        case SUB: {
-            struct Node* dupLeftNode = dup_node(node->left);
-            struct Node* dupRightNode = dup_node(node->right);
-
-            struct Node* result = create_node(OPERATOR, 0, node->var, SUB, Diff(dupLeftNode), Diff(dupRightNode));
-
-            free_tree(dupLeftNode);
-            free_tree(dupRightNode);
-
-            return result;
+        case SUB: 
+            return create_operator(SUB, differentiate(node->left), differentiate(node->right));
             break;
-        }
 
-        case MUL: {
-            struct Node* dupLeftNode = dup_node(node->left);
-            struct Node* dupRightNode = dup_node(node->right);
-
-            struct Node* result = create_node(OPERATOR, 0, node->var, ADD, create_node(OPERATOR, 0, node->var, MUL, Diff(dupLeftNode), dup_node(node->right)), create_node(OPERATOR, 0, node->var, MUL, dup_node(node->left), Diff(dupRightNode)));
-
-            free_tree(dupLeftNode);
-            free_tree(dupRightNode);
-
-            return result;
+        case MUL: 
+            return diff_mul(node->left, node->right);
             break;
-        }
 
-        case DIV: {
-            struct Node* dupLeftNode = dup_node(node->left);
-            struct Node* dupRightNode = dup_node(node->right);
-
-            struct Node* result = create_node(OPERATOR, 0, node->var, DIV, create_node(OPERATOR, 0, node->var, SUB, create_node(OPERATOR, 0, node->var, MUL, Diff(dupLeftNode), dup_node(node->right)), create_node(OPERATOR, 0, node->var, MUL, dup_node(node->left), Diff(dupRightNode))), create_node(OPERATOR, 0, node->var, POW, dup_node(node->right), create_node(NUMBER, 2.0, node->var, NOTHING, NULL, NULL)));
-
-            free_tree(dupLeftNode);
-            free_tree(dupRightNode);
-
-            return result;
+        case DIV: 
+            return diff_div(node->left, node->right);
             break;
-        }
 
-        case POW: {
+        case POW: 
             switch (node->right->type) {
-                case NUMBER: {
-                    struct Node* result = (struct Node*)calloc(1, sizeof(Node));
-                    result->type = OPERATOR;
-                    result->op = MUL;
+            case NUMBER: 
+                return diff_pow_num(node->left, node->right);
+                break;
 
-                    struct Node* arg = dup_node(node->left);
+            default: 
+                struct Node* ln = create_function(LN, node->left);
+                struct Node* arg = create_operator(MUL, node->right, ln);
+                struct Node* result = create_operator(MUL, dup_node(node), differentiate(arg));
 
-                    struct Node* difRightNode = (struct Node*)calloc(1, sizeof(Node));
-                    difRightNode->type = OPERATOR;
-                    difRightNode->op = POW;
-                    difRightNode->left = arg;
-                    difRightNode->right = create_node(NUMBER, node->right->number - 1.0, node->var, NOTHING, NULL, NULL);
-
-                    struct Node* difLeftNode = create_node(NUMBER, node->right->number, node->var, NOTHING, NULL, NULL);
-
-                    struct Node* leftNode = create_node(OPERATOR, node->number, node->var, MUL, difLeftNode, difRightNode);
-                    struct Node* rightNode = Diff(arg);
-
-                    result->left = leftNode;
-                    result->right = rightNode;
-
-                    return result;
-                    break;
-                }
-
-                default: {
-                    struct Node* result = (struct Node*)calloc(1, sizeof(Node));
-                    result->type = OPERATOR;
-                    result->op = MUL;
-
-                    struct Node* leftArg = dup_node(node->left);
-                    struct Node* rightArg = dup_node(node->right);
-
-                    result->left = create_node(OPERATOR, node->number, node->var, POW, leftArg, rightArg);
-                    struct Node* lnRightArg = create_node(FUNCTION, node->number, node->var, LN, dup_node(rightArg), NULL);
-                    struct Node* rightNode = create_node(OPERATOR, node->number, node->var, MUL, dup_node(leftArg), lnRightArg);
-                    result->right = Diff(rightNode); 
-
-                    free_tree(rightNode);
-                    return result;
-                    break;
-                }
-            }
-
-        } default: 
-            break;
-    }
-
-    case FUNCTION:
-        switch (node->op) {
-            case SIN: {
-                struct Node* result = (struct Node*)calloc(1, sizeof(Node));
-
-                result->type = OPERATOR;
-                result->op = MUL;
-
-                struct Node* arg = dup_node(node->left);
-                result->left = create_node(FUNCTION, node->number, node->var, COS, arg, NULL);
-
-                result->right = Diff(arg); //mb dup
+                free(ln);
+                free(arg);
                 
                 return result;
                 break;
             }
 
-            case COS: {
-                struct Node* result = (struct Node*)calloc(1, sizeof(Node));
-
-                result->type = OPERATOR;
-                result->op = MUL;
-
-                result->left = create_node(NUMBER, -1.0, node->var, NOTHING, NULL, NULL);
-                struct Node* arg = dup_node(node->left);
-                result->right = create_node(OPERATOR, node->number, node->var, MUL, create_node(FUNCTION, node->number, node->var, SIN, arg, NULL), Diff(arg));
-
-                return result;
-                break;
-            }
-
-            case TG: {
-                struct Node* tmp = (struct Node*)calloc(1, sizeof(Node));
-
-                tmp->type = OPERATOR;
-                tmp->op = DIV;
-
-                struct Node* arg = dup_node(node->left);
-
-                tmp->left  = create_node(FUNCTION, node->number, node->var, SIN, arg, NULL);
-                tmp->right = create_node(FUNCTION, node->number, node->var, COS, dup_node(arg), NULL); //mb dup arg
-
-                struct Node* result = Diff(tmp);
-
-                free_tree(tmp);
-                return result;
-                break;
-            }
-
-            case CTG: {
-                struct Node* tmp = (struct Node*)calloc(1, sizeof(Node));
-
-                tmp->type = OPERATOR;
-                tmp->op = DIV;
-
-                struct Node* arg = dup_node(node->left);
-
-                tmp->left = create_node(FUNCTION, node->number, node->var, COS, arg, NULL);
-                tmp->right = create_node(FUNCTION, node->number, node->var, SIN, dup_node(arg), NULL); //mb dup arg
-
-                struct Node* result = Diff(tmp);
-
-                free_tree(tmp);
-                return result;
-                break;
-            }
-
-            case LN: {
-                struct Node* arg = dup_node(node->left);
-
-                struct Node* result = create_node(OPERATOR, node->number, node->var, DIV, Diff(arg), arg);
-                return result;
-                break;
-            }
-
-            default :
-                break;
-
-        } default:
+        default:
             break;
+        }
+
+        break;
+
+    case FUNCTION:
+        switch (node->op) {
+        case SIN: 
+            return create_operator(MUL, create_function(COS, dup_node(node->left)), differentiate(node->left));
+            break;
+
+        case COS: 
+            return create_operator(MUL, create_operator(MUL, create_number(-1.0), create_function(SIN, dup_node(node->left))), differentiate(node->left));
+            break;
+
+        case TG:
+            return diff_tg(node->left);
+            break;
+            
+
+        case CTG: 
+            return diff_ctg(node->left);
+            break;
+
+        case LN: 
+            return create_operator(MUL, create_operator(DIV, create_number(1.0), dup_node(node->left)), differentiate(node->left)); 
+            break;
+
+        default:
+            break;
+        }
+
+        break;
     }
 
-    assert(0);
+    PRINT_ERROR(WRONG_TYPE_OR_OP_OR_FUNC);
+    //exit(WRONG_TYPE_OR_OP_OR_FUNC);
     return NULL;
 }
 
@@ -414,7 +311,7 @@ void free_tree(struct Node* node) {
     free_tree(node->right);
 
     free(node);
-    node = NULL; 
+    //node = NULL; 
     return;
 }
 
@@ -423,7 +320,12 @@ static struct Node* Get_G(const char** s) { //TODO make (x+1)(x+2) mb here
 
     CHECK_NULL(node, NO_ERRORS, return NULL);
 
-    if (**s != '\0') {
+    if (**s == ')') {
+        PRINT_ERROR(PAIR_BRACKETS);
+        free_tree(node);
+        return NULL;
+
+    } else if (**s != '\0') {
         PRINT_ERROR(NOT_FOUND_OPERATOR);
         free_tree(node);
         return NULL;
@@ -442,7 +344,7 @@ static struct Node* Get_E(const char** s) {
 
     while ((**s == '+') || (**s == '-')) {
         if (amount >= 1) {
-            operatorType op = get_operator(**s);
+            opAndFuncType op = get_operator(**s);
             ++(*s);
 
             struct Node* rightNode = Get_T(s);
@@ -456,7 +358,7 @@ static struct Node* Get_E(const char** s) {
             node->op    = op;
 
         } else {
-            operatorType op = get_operator(**s);
+            opAndFuncType op = get_operator(**s);
             ++(*s);
 
             struct Node* rightNode = Get_T(s);
@@ -485,13 +387,13 @@ static struct Node* Get_T(const char** s) {
 
     while ((**s == '*') || (**s == '/')) {
         if (amount >= 1) {
-            operatorType op = get_operator(**s);
+            opAndFuncType op = get_operator(**s);
             ++(*s);
 
             struct Node* rightNode = Get_Pow(s);
             CHECK_NULL(rightNode, NO_ERRORS, free_tree(node); return NULL);
 
-            struct Node* newNode = create_operator(node->op, node->left, node->right)
+            struct Node* newNode = create_operator(node->op, node->left, node->right);
             CHECK_NULL(rightNode, NO_ERRORS, free_tree(node); free_tree(rightNode); return NULL);
 
             node->left  = newNode;
@@ -499,7 +401,7 @@ static struct Node* Get_T(const char** s) {
             node->op    = op;
 
         } else {
-            operatorType op = get_operator(**s);
+            opAndFuncType op = get_operator(**s);
             ++(*s);
 
             struct Node* rightNode = Get_Pow(s);
@@ -605,7 +507,7 @@ static struct Node* Get_N(const char** s) {
     return node;
 }
 
-static struct Node* create_node(const nodeType type, const double number, const char var, const operatorType op, struct Node* left, struct Node* right) {
+static struct Node* create_node(const nodeType type, const double number, const char var, const opAndFuncType op, struct Node* left, struct Node* right) {
     struct Node* node = (struct Node*)calloc(1, sizeof(Node));
     CHECK_NULL(node, MEM_ERROR, return NULL);
 
@@ -619,7 +521,7 @@ static struct Node* create_node(const nodeType type, const double number, const 
     return node;
 }
 
-static struct Node* dup_node(struct Node* node) { //TODO check
+static struct Node* dup_node(const struct Node* node) {
     if (node == NULL)
         return NULL;
 
@@ -731,7 +633,7 @@ static void clean_stdinput() {
         str = getchar();
 }
 
-static operatorType get_operator(const int symbol) {
+static opAndFuncType get_operator(const int symbol) {
     switch (symbol) {
         case '+':
             return ADD;
@@ -755,5 +657,6 @@ static operatorType get_operator(const int symbol) {
 
         default:
             return NOTHING;
+            break;
     }
 }

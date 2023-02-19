@@ -9,7 +9,8 @@ int main() {
     struct Node* tree = get_tree(str);
     RETURN_IF_NULL(tree, free(str); return -1);
 
-    struct Node* diffTree = Diff(tree);
+    struct Node* diffTree = get_diff_tree(tree);
+    RETURN_IF_NULL(diffTree, free_tree(tree); free(str); return -1);
 
     print_tree(diffTree);
     printf("\n");
