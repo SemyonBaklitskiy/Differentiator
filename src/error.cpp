@@ -33,7 +33,11 @@ void processor_of_errors(errors error, const char* fileName, const char* functio
             printf("In file %s, in function %s, on the line %d: wrong type or operator or function of node\n", ERROR_LOCATION);
             break;
 
-        default:  //TODO add division by zero and wrong args of functions
+        case OUTPUT_ERROR:
+            printf("In file %s, in function %s, on the line %d: error of printing this type of node\n", ERROR_LOCATION);
+            break;
+
+        default:  
             break;
     }
 }

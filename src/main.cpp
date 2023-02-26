@@ -12,12 +12,8 @@ int main() {
     struct Node* diffTree = get_diff_tree(tree);
     RETURN_IF_NULL(diffTree, free_tree(tree); free(str); return -1);
 
-    print_tree(diffTree);
-    printf("\n");
-
-    free_tree(diffTree);
-    free_tree(tree);
-    free(str);
-
+    output(diffTree);;
+    free_memory(tree, diffTree, str);
+    
     return 0;
 }

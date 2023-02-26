@@ -1,3 +1,5 @@
+#pragma once
+
 enum nodeType {
     VARIABLE     = 1,
     NUMBER       = 2,
@@ -32,8 +34,9 @@ struct Node {
 
 char* get_str();
 struct Node* get_tree(const char* str);
-void print_tree(struct Node* node);
-struct Node* get_diff_tree(const struct Node* node);
+void output(const struct Node* node);
+struct Node* get_diff_tree(const struct Node* tree);
 void free_tree(struct Node* node);
+void free_memory(struct Node* tree, struct Node* diffTree, char* str);
 
 #define RETURN_IF_NULL(pointer, ...) if (pointer == NULL) { __VA_ARGS__; }
