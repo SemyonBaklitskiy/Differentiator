@@ -5,6 +5,10 @@
 #include "functions.h"
 #include "error.h"
 
+//TODO make check for args function
+//TODO make print function
+//TODO check for null in diff function
+
 static const char* allowedFuncs[]  = {"sin", "cos", "tg", "ctg", "ln"};
 static const size_t maxFuncsLength = 3;
 static const size_t minFuncsLength = 2;
@@ -455,7 +459,7 @@ static void simplify_constants(struct Node* node) {
                 free_tree(node->right);
                 struct Node* leftNode = node->left;
                 copy_node(node, leftNode);
-                free_tree(leftNode);
+                free(leftNode);
 
             } else if ((node->right->type == NUMBER) && compare(node->right->number, -1.0)) {
                 node->op = DIV;
