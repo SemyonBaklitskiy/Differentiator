@@ -9,6 +9,8 @@ static const char* allowedFuncs[]  = {"sin", "cos", "tg", "ctg", "ln"};
 static const size_t maxFuncsLength = 3;
 static const size_t minFuncsLength = 2;
 
+static void skip_spaces(const char** s);
+
 static char* get_function_name(const char** s);
 static bool match(const char* str);
 static opAndFuncType get_operator(const int symbol);
@@ -88,6 +90,7 @@ static struct Node* Get_T(const char** s) {
     int amount = 0;
 
     struct Node* leftNode = Get_Pow(s);
+
     CHECK_NULL(leftNode, NO_ERRORS, return NULL);
 
     while ((**s == '*') || (**s == '/')) {
@@ -131,6 +134,7 @@ static struct Node* Get_Pow(const char** s) {
     int amount = 0;
 
     struct Node* leftNode = Get_P(s);
+
     CHECK_NULL(leftNode, NO_ERRORS, return NULL);
 
     while (**s == '^') {
@@ -164,9 +168,11 @@ static struct Node* Get_Pow(const char** s) {
 
 static struct Node* Get_P(const char** s) {
     struct Node* node = NULL;
+    skip_spaces(s);
 
     if (**s == '(') {
         ++(*s);
+
         node = Get_E(s);
 
         CHECK_NULL(node, NO_ERRORS, return NULL);
@@ -183,6 +189,7 @@ static struct Node* Get_P(const char** s) {
         node = Get_N(s);
     }
 
+    skip_spaces(s);
     return node;
 }
 
@@ -327,4 +334,9 @@ static opAndFuncType get_operator(const int symbol) {
             return NOTHING;
             break;
     }
+}
+
+static void skip_spaces(const char** s) {
+    while (**s == ' ')
+       ++(*s);
 }
