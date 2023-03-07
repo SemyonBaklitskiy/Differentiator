@@ -35,6 +35,7 @@ struct Node {
 char* get_str();
 struct Node* get_tree(const char* str);
 void output(const struct Node* node);
+void dump(const struct Node* tree, const char* fileName);
 struct Node* get_diff_tree(const struct Node* tree);
 void free_tree(struct Node* node);
 void free_memory(struct Node* tree, struct Node* diffTree, char* str);

@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include "functions.h"
 
+static const char fileTreeName[] = "tree.gv";
+static const char diffTreeFileName[] = "diff_tree.gv";
+
 int main() {
     char* str = get_str();
     RETURN_IF_NULL(str, return 0);
@@ -12,7 +15,13 @@ int main() {
     struct Node* diffTree = get_diff_tree(tree);
     RETURN_IF_NULL(diffTree, free_tree(tree); free(str); return -1);
 
-    output(diffTree);;
+    output(diffTree);
+
+#ifdef DUMP
+    dump(tree, fileTreeName);
+    dump(diffTree, diffTreeFileName);
+#endif
+
     free_memory(tree, diffTree, str);
     
     return 0;

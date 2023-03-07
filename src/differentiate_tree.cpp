@@ -5,92 +5,67 @@
 #include "node_functions.h"
 #include "differentiate_tree.h"
 
-#define diff_mul(left, right) create_operator(ADD, create_operator(MUL, leftNode, dup_node(right)), create_operator(MUL, dup_node(left), rightNode))
-#define diff_div(left, right) create_operator(DIV, create_operator(SUB, create_operator(MUL, leftNode, dup_node(right)), create_operator(MUL, dup_node(left), rightNode)), create_operator(POW, dup_node(right), create_number(2)))
-#define diff_pow_num(left, right) create_operator(MUL, create_number(right->number), create_operator(MUL, create_operator(POW, dup_node(left), create_number(right->number - 1.0)), leftNode))
-#define diff_tg(left) create_operator(MUL, create_operator(DIV, create_number(1.0), create_operator(POW, create_function(COS, dup_node(left)), create_number(2.0))), leftNode)
-#define diff_ctg(left) create_operator(MUL, create_operator(DIV, create_number(-1.0), create_operator(POW, create_function(SIN, dup_node(left)), create_number(2.0))), leftNode)
+#define dup(arg) dup_node(arg)
+#define diff(arg) differentiate(arg)
+#define Left node->left
+#define Right node->right
+#define type(node) node->type
+#define op(node) node->op
+#define num(node) node->number
+
+#define operator(op, left, right) create_operator(op, left, right)
+#define function(func, left) create_function(func, left)
+#define number(val) create_number(val)
+
+#define isNumber(node, val) (type(node) == NUMBER) && compare(num(node), val)
+
+#define full_delete_and_change(deleteNode, copyNode) free_tree(deleteNode); struct Node* tmp = copyNode; copy_node(node, tmp); free_tree(tmp);
+#define delete_and_change(deleteNode, copyNode) free_tree(deleteNode); struct Node* tmp = copyNode; copy_node(node, tmp); free(tmp);
 
 static bool compare(const double firstNumber, const double secondNumber);
 
 struct Node* differentiate(const struct Node* node) {
-    switch (node->type) {
+    switch (type(node)) {
     case NUMBER:
-        return create_number(0);
+        return number(0.0);
         break;
 
     case VARIABLE:
-        return create_number(1);
+        return number(1.0);
         break;
 
     case OPERATOR: 
-        switch (node->op) {
-        case ADD: {
-            struct Node* leftNode = differentiate(node->left);
-            CHECK_NULL(leftNode, NO_ERRORS, return NULL);
-
-            struct Node* rightNode = differentiate(node->right);
-            CHECK_NULL(rightNode, NO_ERRORS, free_tree(leftNode); return NULL);
-
-            return create_operator(ADD, leftNode, rightNode);
+        switch (op(node)) {
+        case ADD:
+            return operator(ADD, diff(Left), diff(Right));
             break;
-        }
 
-        case SUB: {
-            struct Node* leftNode = differentiate(node->left);
-            CHECK_NULL(leftNode, NO_ERRORS, return NULL);
-
-            struct Node* rightNode = differentiate(node->right);
-            CHECK_NULL(rightNode, NO_ERRORS, free_tree(leftNode); return NULL);
-
-            return create_operator(SUB, leftNode, rightNode);
+        case SUB: 
+            return operator(SUB, diff(Left), diff(Right));
             break;
-        }
         
-        case MUL: {
-            struct Node* leftNode = differentiate(node->left);
-            CHECK_NULL(leftNode, NO_ERRORS, return NULL);
-
-            struct Node* rightNode = differentiate(node->right);
-            CHECK_NULL(rightNode, NO_ERRORS, free_tree(leftNode); return NULL);
-
-            return diff_mul(node->left, node->right);
+        case MUL: 
+            return operator(ADD, operator(MUL, diff(Left), dup(Right)), operator(MUL, dup(Left), diff(Right)));
             break;
-        }
 
-        case DIV: { 
-            struct Node* leftNode = differentiate(node->left);
-            CHECK_NULL(leftNode, NO_ERRORS, return NULL);
-
-            struct Node* rightNode = differentiate(node->right);
-            CHECK_NULL(rightNode, NO_ERRORS, free_tree(leftNode); return NULL);
-
-            return diff_div(node->left, node->right);
+        case DIV:
+            return operator(DIV, operator(SUB, operator(MUL, diff(Left), dup(Right)), operator(MUL, dup(Left), diff(Right))), operator(POW, dup(Right), number(2.0)));
             break;
-        }
 
         case POW: 
-            switch (node->right->type) {
-            case NUMBER: { 
-                struct Node* leftNode = differentiate(node->left);
-                CHECK_NULL(leftNode, NO_ERRORS, return NULL);
-                
-                return diff_pow_num(node->left, node->right);
+            switch (type(Right)) {
+            case NUMBER: 
+                return operator(MUL, number(num(Right)), operator(MUL, operator(POW, dup(Left), number(num(Right) - 1.0)), diff(Left)));
                 break;
-            }
 
             default: 
-                struct Node* ln = create_function(LN, node->left);
-                struct Node* arg = create_operator(MUL, node->right, ln);
-
-                struct Node* diffArg =  differentiate(arg);
-                CHECK_NULL(diffArg, NO_ERRORS, free(ln); free(arg); return NULL);
-
-                struct Node* result = create_operator(MUL, dup_node(node), diffArg);
+                struct Node* ln = create_function(LN, Left);
+                struct Node* arg = create_operator(MUL, Right, ln);
+                struct Node* result = create_operator(MUL, dup(node), diff(arg));
 
                 free(ln);
                 free(arg);
-                
+
                 return result;
                 break;
             }
@@ -101,40 +76,38 @@ struct Node* differentiate(const struct Node* node) {
 
         break;
 
-    case FUNCTION: {
-        struct Node* leftNode = differentiate(node->left);
-        CHECK_NULL(leftNode, NO_ERRORS, return NULL);
-
-        switch (node->op) {
+    case FUNCTION: 
+        switch (op(node)) {
         case SIN: 
-            return create_operator(MUL, create_function(COS, dup_node(node->left)), leftNode);
+            return operator(MUL, function(COS, dup(Left)), diff(Left));
             break;
 
         case COS: 
-            return create_operator(MUL, create_operator(MUL, create_number(-1.0), create_function(SIN, dup_node(node->left))), leftNode);
+            return operator(MUL, operator(MUL, number(-1.0), function(SIN, dup(Left))), diff(Left));
             break;
 
         case TG:
-            return diff_tg(node->left);
+            return operator(MUL, operator(DIV, number(1.0), operator(POW, function(COS, dup(Left)), number(2.0))), diff(Left));
             break;
 
         case CTG: 
-            return diff_ctg(node->left);
+            return operator(MUL, operator(DIV, number(-1.0), operator(POW, function(SIN, dup(Left)), number(2.0))), diff(Left));
             break;
 
         case LN: 
-            return create_operator(MUL, create_operator(DIV, create_number(1.0), dup_node(node->left)), leftNode); 
+            return operator(MUL, operator(DIV, number(1.0), dup(Left)), diff(Left)); 
             break;
 
         default:
-            free_tree(leftNode);
             break;
         }
 
-    }   break;
+        break;
     }
 
     PRINT_ERROR(WRONG_TYPE_OR_OP_OR_FUNC);
+    exit(WRONG_TYPE_OR_OP_OR_FUNC);
+
     return NULL;
 }
 
@@ -142,110 +115,75 @@ void simplify_constants(struct Node* node) {
     if (node == NULL)
         return;
 
-    simplify_constants(node->left);
-    simplify_constants(node->right);
+    simplify_constants(Left);
+    simplify_constants(Right);
 
-    switch (node->type) {
+    switch (type(node)) {
     case OPERATOR:
-        switch (node->op) {
+        switch (op(node)) {
         case ADD:
-            if ((node->left->type == NUMBER) && compare(node->left->number, 0.0)) {
-                free_tree(node->left);
-                struct Node* rightNode = node->right;
-                copy_node(node, rightNode);
-                free(rightNode);
+            if (isNumber(Left, 0.0)) {
+                delete_and_change(Left, Right);
 
-            } else if ((node->right->type == NUMBER) && compare(node->right->number, 0.0)) {
-                free_tree(node->right);
-                struct Node* leftNode = node->left;
-                copy_node(node, leftNode);
-                free(leftNode);
+            } else if (isNumber(Right, 0.0)) {
+                delete_and_change(Right, Left);
             }
 
             break;
 
         case SUB: 
-            if ((node->left->type == NUMBER) && compare(node->left->number, 0.0)) {
-                node->left->number = -1.0;
-                node->op = MUL;
+            if (isNumber(Left, 0.0)) {
+                num(Left) = -1.0;
+                op(node) = MUL;
+                simplify_constants(node);
 
-            } else if ((node->right->type == NUMBER) && compare(node->right->number, 0.0)) {
-                free_tree(node->right);
-                struct Node* leftNode = node->left;
-                copy_node(node, leftNode);
-                free(leftNode);
+            } else if (isNumber(Right, 0.0)) {
+                delete_and_change(Right, Left);
             }
 
             break;
 
         case MUL:
-            if ((node->left->type == NUMBER) && compare(node->left->number, 0.0)) {
-                free_tree(node->right);
-                struct Node* leftNode = node->left;
-                copy_node(node, leftNode);
-                free_tree(leftNode);
+            if (isNumber(Left, 0.0)) {
+                full_delete_and_change(Right, Left);
 
-            } else if ((node->right->type == NUMBER) && compare(node->right->number, 0.0)) {
-                free_tree(node->left);
-                struct Node* rightNode = node->right;
-                copy_node(node, rightNode);
-                free_tree(rightNode);
+            } else if (isNumber(Right, 0.0)) {
+                full_delete_and_change(Left, Right);
 
-            } else if ((node->left->type == NUMBER) && compare(node->left->number, 1.0)) {
-                free_tree(node->left);
-                struct Node* rightNode = node->right;
+            } else if (isNumber(Left, 1.0)) {
+                delete_and_change(Left, Right);
 
-                copy_node(node, rightNode);
-                free(rightNode);
-
-            } else if ((node->right->type == NUMBER) && compare(node->right->number, 1.0)) {
-                free_tree(node->right);
-                struct Node* leftNode = node->left;
-
-                copy_node(node, leftNode);
-                free(leftNode);
+            } else if (isNumber(Right, 1.0)) {
+                delete_and_change(Right, Left);
             }
 
             break;
 
         case DIV: 
-            if ((node->left->type == NUMBER) && compare(node->left->number, 0.0)) {
-                free_tree(node->right);
-                struct Node* leftNode = node->left;
-                copy_node(node, leftNode);
-                free_tree(leftNode);
+            if (isNumber(Left, 0.0)) {
+                full_delete_and_change(Right, Left);
 
-            } else if ((node->right->type == NUMBER) && compare(node->right->number, 1.0)) {
-                free_tree(node->right);
-                struct Node* leftNode = node->left;
-
-                copy_node(node, leftNode);
-                free(leftNode);
+            } else if (isNumber(Right, 1.0)) {
+                delete_and_change(Right, Left);
             }
 
             break;
 
         case POW: 
-            if ((node->left->type == NUMBER) && compare(node->left->number, 1.0)) {
-                free_tree(node->right);
-                struct Node* leftNode = node->left;
-                copy_node(node, leftNode);
-                free_tree(leftNode);
+            if (isNumber(Left, 1.0)) {
+                full_delete_and_change(Right, Left);
 
-            } else if ((node->right->type == NUMBER) && compare(node->right->number, 1.0)) {
-                free_tree(node->right);
-                struct Node* leftNode = node->left;
-                copy_node(node, leftNode);
-                free(leftNode);
+            } else if (isNumber(Right, 1.0)) {
+                delete_and_change(Right, Left);
 
-            } else if ((node->right->type == NUMBER) && compare(node->right->number, -1.0)) {
-                node->op = DIV;
-                struct Node* leftNode = node->left;
-                node->left = node->right;
-                node->left->number = 1.0;
-                node->right = leftNode;
-
+            } else if (isNumber(Right, -1.0)) {
+                op(node) = DIV;
+                struct Node* tmp = Left;
+                Left = Right;
+                num(Left) = 1.0;
+                Right = tmp;
             }
+
             break;
 
         default:
@@ -262,3 +200,20 @@ static bool compare(const double firstNumber, const double secondNumber) {
     const double epsilon = 0.00001;
     return (fabs(firstNumber - secondNumber) <= epsilon);
 }
+
+#undef dup
+#undef diff
+#undef Left
+#undef Right
+#undef type
+#undef op
+#undef num
+
+#undef operator
+#undef function
+#undef number
+
+#undef isNumber
+
+#undef full_delete_and_change
+#undef delete_and_change

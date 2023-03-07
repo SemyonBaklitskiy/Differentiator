@@ -37,6 +37,10 @@ void processor_of_errors(errors error, const char* fileName, const char* functio
             printf("In file %s, in function %s, on the line %d: error of printing this type of node\n", ERROR_LOCATION);
             break;
 
+        case FILE_ERROR:
+            printf("In file %s, in function %s, on the line %d: can`t open file\n", ERROR_LOCATION);
+            break;
+
         default:  
             break;
     }

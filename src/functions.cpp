@@ -52,6 +52,11 @@ void output(const struct Node* diffTree) {
     printf("\n");
 }
 
+void dump(const struct Node* tree, const char* fileName) {
+    CHECK_NULL(tree, NULL_GIVEN, return);
+    dump_tree(tree, fileName);
+}
+
 struct Node* get_diff_tree(const struct Node* tree) { 
     CHECK_NULL(tree, NULL_GIVEN, return NULL);
     struct Node* result = differentiate(tree);

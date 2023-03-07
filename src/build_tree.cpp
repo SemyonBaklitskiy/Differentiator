@@ -90,7 +90,6 @@ static struct Node* Get_T(const char** s) {
     int amount = 0;
 
     struct Node* leftNode = Get_Pow(s);
-
     CHECK_NULL(leftNode, NO_ERRORS, return NULL);
 
     while ((**s == '*') || (**s == '/')) {
@@ -134,7 +133,6 @@ static struct Node* Get_Pow(const char** s) {
     int amount = 0;
 
     struct Node* leftNode = Get_P(s);
-
     CHECK_NULL(leftNode, NO_ERRORS, return NULL);
 
     while (**s == '^') {
@@ -174,7 +172,6 @@ static struct Node* Get_P(const char** s) {
         ++(*s);
 
         node = Get_E(s);
-
         CHECK_NULL(node, NO_ERRORS, return NULL);
 
         if (**s != ')') {
@@ -184,6 +181,24 @@ static struct Node* Get_P(const char** s) {
         }
 
         ++(*s);
+
+    } else if (**s == '-') {
+        ++(*s);
+
+        skip_spaces(s);
+        if (**s == '-') {
+            PRINT_ERROR(FORBIDDEN_SYMBOL);
+            return NULL;
+        }
+
+        struct Node* rightNode = Get_Pow(s);
+        CHECK_NULL(rightNode, NO_ERRORS, return NULL);
+
+        struct Node* leftNode = create_number(-1.0);
+        CHECK_NULL(leftNode, NO_ERRORS, free_tree(rightNode); return NULL);
+
+        node = create_operator(MUL, leftNode, rightNode);
+        CHECK_NULL(node, NO_ERRORS, free_tree(rightNode); free_tree(leftNode); return NULL);
 
     } else {
         node = Get_N(s);

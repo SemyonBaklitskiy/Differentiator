@@ -3,68 +3,70 @@
 #include "error.h"
 #include "output_tree.h"
 
+#define isInt (int)num(node) == num(node)
+
+#define type(node) node->type
+#define op(node) node->op
+#define num(node) node->number
+#define var(node) node->var
+
+#define Left node->left
+#define Right node->right
+
+#define print_function(func) printf(func"("); print_tree(Left); printf(")");
+#define print_operator(openBracket, symbol, closeBracket); printf(openBracket); print_tree(Left); printf(symbol); print_tree(Right); printf(closeBracket)
+
+static const char* get_string(opAndFuncType val);
+static void make_edges(const struct Node* node, FILE* stream, bool* secondCall);
+static void make_labels(const struct Node* node, FILE* stream); 
+
 void print_tree(const struct Node* node) {
     if (node == NULL) {
         PRINT_ERROR(OUTPUT_ERROR);
         return;
     }
 
-    switch (node->type) {
+    switch (type(node)) {
     case NUMBER:
-        if (node->number < 0)
+        if (num(node) < 0)
             printf("(");
 
-        if ((int)node->number == node->number) {
-            printf("%d", (int)node->number);
+        if (isInt) {
+            printf("%d", (int)num(node));
 
         } else {
-            printf("%lf", node->number);
+            printf("%lf", num(node));
         }
 
-        if (node->number < 0)
+        if (num(node) < 0)
             printf(")");
 
         break;
 
     case VARIABLE:
-        printf("%c", node->var);
+        printf("%c", var(node));
         break;
 
     case FUNCTION:
-        switch (node->op) {
+        switch (op(node)) {
         case SIN:
-            printf("sin(");
-            print_tree(node->left);
-            printf(")");
-
+            print_function("sin");
             break;
 
         case COS:
-            printf("cos(");
-            print_tree(node->left);
-            printf(")");
-
+            print_function("cos");
             break;
 
         case TG:
-            printf("tg(");
-            print_tree(node->left);
-            printf(")");
-
+            print_function("tg");
             break;
 
         case CTG:
-            printf("ctg(");
-            print_tree(node->left);
-            printf(")");
-
+            print_function("ctg");
             break;
 
         case LN:
-            printf("ln(");
-            print_tree(node->left);
-            printf(")");
-
+            print_function("ln");
             break;
 
         default:
@@ -76,112 +78,74 @@ void print_tree(const struct Node* node) {
         break;
 
     case OPERATOR:
-        switch (node->op) {
+        switch (op(node)) {
         case ADD:
-            print_tree(node->left);
-            printf("+");
-            print_tree(node->right);
-
+            print_operator("", "+", "");
             break;
 
         case SUB:
-            print_tree(node->left);
-            printf("-");
-            print_tree(node->right);
-
+            if (op(Right) == SUB) {
+                print_operator("", "-(", ")");
+            } else {
+                print_operator("", "-", "");
+            }
             break;
 
         case MUL:
-            CHECK_NULL(node->left, OUTPUT_ERROR, return);
-            CHECK_NULL(node->right, OUTPUT_ERROR, return);
+            CHECK_NULL(Left, OUTPUT_ERROR, return);
+            CHECK_NULL(Right, OUTPUT_ERROR, return);
 
-            if (((node->left->op == ADD) || (node->left->op == SUB)) && ((node->right->op == ADD) || (node->right->op == SUB))) {
-                printf("(");
-                print_tree(node->left);
-                printf(")*(");
-                print_tree(node->right);
-                printf(")");
+            if (((op(Left) == ADD) || (op(Left) == SUB)) && ((op(Right) == ADD) || (op(Right) == SUB))) {
+                print_operator("(", ")*(", ")");
 
-            } else if ((node->left->op == ADD) || (node->left->op == SUB)) {
-                printf("(");
-                print_tree(node->left);
-                printf(")*");
-                print_tree(node->right);
+            } else if ((op(Left) == ADD) || (op(Left) == SUB)) {
+                print_operator("(" ,")*", "");
 
-            } else if ((node->right->op == ADD) || (node->right->op == SUB)) {
-                print_tree(node->left);
-                printf("*(");
-                print_tree(node->right);
-                printf(")");
+            } else if ((op(Right) == ADD) || (op(Right) == SUB)) {
+                print_operator("" ,"*(", ")");
 
             } else {
-                print_tree(node->left);
-                printf("*");
-                print_tree(node->right);
+                print_operator("", "*", "");
             }
 
             break;
 
         case DIV: 
-            CHECK_NULL(node->left, OUTPUT_ERROR, return);
-            CHECK_NULL(node->right, OUTPUT_ERROR, return);
+            CHECK_NULL(Left, OUTPUT_ERROR, return);
+            CHECK_NULL(Right, OUTPUT_ERROR, return);
 
-            if (((node->left->op == ADD) || (node->left->op == SUB)) && ((node->right->op == ADD) || (node->right->op == SUB))) {
-                printf("(");
-                print_tree(node->left);
-                printf(")/(");
-                print_tree(node->right);
-                printf(")");
+            if (((op(Left) == ADD) || (op(Left) == SUB)) && ((op(Right) == ADD) || (op(Right) == SUB))) {
+                print_operator("(", ")/(", ")");
 
-            } else if ((node->left->op == ADD) || (node->left->op == SUB)) {
-                printf("(");
-                print_tree(node->left);
-                printf(")/");
-                print_tree(node->right);
+            } else if ((op(Left) == ADD) || (op(Left) == SUB)) {
+                print_operator("(" ,")/", "");
 
-            } else if ((node->right->op == ADD) || (node->right->op == SUB)) {
-                print_tree(node->left);
-                printf("/(");
-                print_tree(node->right);
-                printf(")");
+            } else if ((op(Right) == ADD) || (op(Right) == SUB) || (op(Right) == MUL) || (op(Right) == DIV)) {
+                print_operator("" ,"/(", ")");
 
             } else {
-                print_tree(node->left);
-                printf("/");
-                print_tree(node->right);
+                print_operator("", "/", "");
             }
 
             break;
 
         case POW:
-            CHECK_NULL(node->left, OUTPUT_ERROR, return);
-            CHECK_NULL(node->right, OUTPUT_ERROR, return);
+            CHECK_NULL(Left, OUTPUT_ERROR, return);
+            CHECK_NULL(Left, OUTPUT_ERROR, return);
 
-            if (((node->left->op == ADD) || (node->left->op == SUB) || (node->left->op == MUL) || (node->left->op == DIV)) && 
-                ((node->right->op == ADD) || (node->right->op == SUB) || (node->right->op == MUL) || (node->right->op == DIV))) {
-                    printf("(");
-                    print_tree(node->left);
-                    printf(")^(");
-                    print_tree(node->right);
-                    printf(")");
+            if (((op(Left) == ADD) || (op(Left) == SUB) || (op(Left) == MUL) || (op(Left) == DIV)) && 
+                ((op(Right) == ADD) || (op(Right) == SUB) || (op(Right) == MUL) || (op(Right) == DIV))) {
+                    print_operator("(", ")^(", ")");;
                 }
 
-            else if ((node->left->op == ADD) || (node->left->op == SUB) || (node->left->op == MUL) || (node->left->op == DIV)) {
-                printf("(");
-                print_tree(node->left);
-                printf(")^");
-                print_tree(node->right);
+            else if ((op(Left) == ADD) || (op(Left) == SUB) || (op(Left) == MUL) || (op(Left) == DIV)) {
+                print_operator("(" ,")^", "");
 
-            } else if ((node->right->op == ADD) || (node->right->op == SUB) || (node->right->op == MUL) || (node->right->op == DIV)) {
-                print_tree(node->left);
-                printf("^(");
-                print_tree(node->right);
-                printf(")");
+            } else if ((op(Right) == ADD) || (op(Right) == SUB) || (op(Right) == MUL) || (op(Right) == DIV)) {
+                print_operator("" ,"^(", ")");
 
             } else {
-                print_tree(node->left);
-                printf("^");
-                print_tree(node->right);
+                print_operator("", "^", "");
             }
 
             break;
@@ -200,3 +164,135 @@ void print_tree(const struct Node* node) {
         break;
     }
 }
+
+void dump_tree(const struct Node* tree, const char* fileName) {
+    FILE* file = fopen(fileName, "w");
+    CHECK_NULL(file, FILE_ERROR, return);
+
+    fprintf(file, "digraph Tree {\n");
+    make_labels(tree, file);
+    bool secondCall = false;
+    make_edges(tree, file, &secondCall);
+
+    fprintf(file, "}");
+    fclose(file);
+}
+
+static void make_labels(const struct Node* node, FILE* stream) {
+    if (node == NULL) 
+        return;
+
+    fprintf(stream, "\"%p\" [label = ", node);
+
+    switch (type(node)) {
+    case NUMBER:
+        if (isInt) {
+            fprintf(stream, "%d];\n", (int)num(node));
+
+        } else {
+            fprintf(stream, "%lf];\n", num(node));
+        }
+        break;
+
+    case VARIABLE:
+        fprintf(stream, "%c];\n", var(node));
+        break;
+
+    default:
+        fprintf(stream, "%s];\n", get_string(op(node)));
+        break;
+    }
+
+    make_labels(Left, stream);
+    make_labels(Right, stream);
+} 
+
+static void make_edges(const struct Node* node, FILE* stream, bool* secondCall) {
+    if (node == NULL)
+        return;
+
+    if (type(node) == FUNCTION) {
+        fprintf(stream, "\"%p\" -> ", node);
+        make_edges(Left, stream, secondCall);
+        *secondCall = true;
+
+    } else if ((Left == NULL) || (Right == NULL)) {
+        fprintf(stream, "\"%p\";\n", node);
+
+    } else {
+        fprintf(stream, "\"%p\" -> ", node);
+    }
+
+    if (*secondCall)
+        return;
+
+    make_edges(Left, stream, secondCall);
+
+    *secondCall = true;
+    make_edges(node, stream, secondCall);
+    *secondCall = false;
+
+    make_edges(Right, stream, secondCall);
+}
+
+static const char* get_string(opAndFuncType val) {
+    switch (val) {
+    case ADD:
+        return "\"+\"";
+        break;
+
+    case SUB:
+        return "\"-\"";
+        break;
+
+    case MUL:
+        return "\"*\"";
+        break;
+
+    case DIV:
+        return "\"/\"";
+        break;
+
+    case POW:
+        return "\"^\"";
+        break;
+
+    case SIN:
+        return "\"sin\"";
+        break;
+
+    case COS:
+        return "\"cos\"";
+        break;
+
+    case TG:
+        return "\"tg\"";
+        break;
+
+    case CTG:
+        return "\"ctg\"";
+        break;
+
+    case LN:
+        return "\"ln\"";
+        break;
+
+    default:
+        PRINT_ERROR(WRONG_TYPE_OR_OP_OR_FUNC);
+        return "\0";
+        break;
+    }
+}
+
+#undef isInt
+
+#undef type
+#undef var
+#undef op
+#undef num
+
+#undef Left
+#undef Right
+
+#undef print_function
+#undef print_operator
