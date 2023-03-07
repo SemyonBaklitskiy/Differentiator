@@ -14,11 +14,9 @@ enum opAndFuncType {
     MUL     = 3,
     DIV     = 4,
     POW     = 5,
-    TG      = 6,
-    CTG     = 7,
-    SIN     = 8,
-    COS     = 9,
-    LN      = 10,
+    #define generator(funcName, func, ...) func,
+    #include "define.h" //code generation for enum
+    #undef generator 
 };
 
 struct Node {

@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include "functions.h"
 
+#ifdef DUMP
 static const char fileTreeName[] = "tree.gv";
 static const char diffTreeFileName[] = "diff_tree.gv";
+#endif
 
 int main() {
     char* str = get_str();

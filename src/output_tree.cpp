@@ -49,25 +49,10 @@ void print_tree(const struct Node* node) {
 
     case FUNCTION:
         switch (op(node)) {
-        case SIN:
-            print_function("sin");
-            break;
 
-        case COS:
-            print_function("cos");
-            break;
-
-        case TG:
-            print_function("tg");
-            break;
-
-        case CTG:
-            print_function("ctg");
-            break;
-
-        case LN:
-            print_function("ln");
-            break;
+        #define generator(nameFunc, func, ...) case func: print_function(nameFunc); break;
+        #include "define.h" //code generation for print function node
+        #undef generator
 
         default:
             PRINT_ERROR(OUTPUT_ERROR);
@@ -257,25 +242,9 @@ static const char* get_string(opAndFuncType val) {
         return "\"^\"";
         break;
 
-    case SIN:
-        return "\"sin\"";
-        break;
-
-    case COS:
-        return "\"cos\"";
-        break;
-
-    case TG:
-        return "\"tg\"";
-        break;
-
-    case CTG:
-        return "\"ctg\"";
-        break;
-
-    case LN:
-        return "\"ln\"";
-        break;
+    #define generator(nameFunc, func, ...) case func: return nameFunc; break;
+    #include "define.h" //code generation for dump function node
+    #undef generator
 
     default:
         PRINT_ERROR(WRONG_TYPE_OR_OP_OR_FUNC);

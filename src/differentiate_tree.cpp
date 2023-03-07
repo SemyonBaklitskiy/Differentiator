@@ -78,26 +78,11 @@ struct Node* differentiate(const struct Node* node) {
 
     case FUNCTION: 
         switch (op(node)) {
-        case SIN: 
-            return operator(MUL, function(COS, dup(Left)), diff(Left));
-            break;
 
-        case COS: 
-            return operator(MUL, operator(MUL, number(-1.0), function(SIN, dup(Left))), diff(Left));
-            break;
-
-        case TG:
-            return operator(MUL, operator(DIV, number(1.0), operator(POW, function(COS, dup(Left)), number(2.0))), diff(Left));
-            break;
-
-        case CTG: 
-            return operator(MUL, operator(DIV, number(-1.0), operator(POW, function(SIN, dup(Left)), number(2.0))), diff(Left));
-            break;
-
-        case LN: 
-            return operator(MUL, operator(DIV, number(1.0), dup(Left)), diff(Left)); 
-            break;
-
+        #define generator(nameFunc, func, ...) case func: return __VA_ARGS__; break;
+        #include "define.h" //code generation for diff function node
+        #undef generator
+        
         default:
             break;
         }

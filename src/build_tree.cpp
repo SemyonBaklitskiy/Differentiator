@@ -1,12 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "node_functions.h"
 #include "error.h"
 #include "build_tree.h"
 
-static const char* allowedFuncs[]  = {"sin", "cos", "tg", "ctg", "ln"};
-static const size_t maxFuncsLength = 3;
+#define generator(nameFunc, func, ...) nameFunc,
+static const char* allowedFuncs[]  = {
+#include "../includes/define.h" 
+};
+#undef generator
+
+static const size_t maxFuncsLength = 6;
 static const size_t minFuncsLength = 2;
 
 static void skip_spaces(const char** s);
@@ -226,6 +232,18 @@ static struct Node* Get_N(const char** s) {
 
         ++(*s);
 
+    } else if (**s == 'e') {
+        node = create_number(exp(1));
+        CHECK_NULL(node, NO_ERRORS, return NULL);
+
+        ++(*s);
+
+    } else if ((**s == 'p') && (*(*s + 1) == 'i')) {
+        node = create_number(acos(-1));
+        CHECK_NULL(node, NO_ERRORS, return NULL);
+
+        *s += 2;
+
     } else {
         node = get_function_node(s);
         CHECK_NULL(node, NO_ERRORS, return NULL);
@@ -251,24 +269,10 @@ static struct Node* get_function_node(const char** s) {
 
     CHECK_NULL(leftNode, NO_ERRORS, free(functionName); return NULL);
 
-    if (strcmp(functionName, "sin") == 0) {
-        node = create_function(SIN, leftNode);
-
-    } else if (strcmp(functionName, "cos") == 0) {
-        node = create_function(COS, leftNode);
-
-    } else if (strcmp(functionName, "tg") == 0) {
-        node = create_function(TG, leftNode);
-
-    } else if (strcmp(functionName, "ctg") == 0) {
-        node = create_function(CTG, leftNode);
-    
-    } else if (strcmp(functionName, "ln") == 0) {
-        node = create_function(LN, leftNode);
-
-    } else {
-        //add functions here
-    }
+    #define generator(nameFunc, func, ...) if (strcmp(functionName, nameFunc) == 0) { node = create_function(func, leftNode); } else
+    #include "../includes/define.h" //code generation for node
+    {}
+    #undef generator
 
     CHECK_NULL(node, NO_ERRORS, free(functionName); free_tree(leftNode); return NULL);
 

@@ -1,0 +1,5 @@
+generator("sin", SIN, operator(MUL, function(COS, dup(Left)), diff(Left)))
+generator("cos", COS, operator(MUL, operator(MUL, number(-1.0), function(SIN, dup(Left))), diff(Left)))
+generator("tg", TG, operator(MUL, operator(DIV, number(1.0), operator(POW, function(COS, dup(Left)), number(2.0))), diff(Left)))
+generator("ctg", CTG, operator(MUL, operator(DIV, number(-1.0), operator(POW, function(SIN, dup(Left)), number(2.0))), diff(Left)))
+generator("ln", LN, operator(MUL, operator(DIV, number(1.0), dup(Left)), diff(Left)))
