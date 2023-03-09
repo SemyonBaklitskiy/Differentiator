@@ -1,9 +1,9 @@
-all: main.o functions.o error.o build_tree.o differentiate_tree.o node_functions.o output_tree.o
-	g++ bin/main.o bin/functions.o bin/error.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o -o bin/start
+all: main.o functions.o error.o build_tree.o differentiate_tree.o node_functions.o output_tree.o math_functions.o
+	g++ bin/main.o bin/functions.o bin/error.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o bin/math_functions.o -o bin/start
 	bin/./start
 
-dump: main_dump.o functions.o error.o build_tree.o differentiate_tree.o node_functions.o output_tree.o
-	g++ bin/main_dump.o bin/functions.o bin/error.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o -o bin/start
+dump: main_dump.o functions.o error.o build_tree.o differentiate_tree.o node_functions.o output_tree.o math_functions.o
+	g++ bin/main_dump.o bin/functions.o bin/error.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o bin/math_functions.o -o bin/start
 	bin/./start
 	dot -Tpng tree.gv -o tree.png
 	dot -Tpng diff_tree.gv -o diff_tree.png
@@ -34,6 +34,9 @@ node_functions.o: src/node_functions.cpp includes/node_functions.h
 
 output_tree.o: src/output_tree.cpp includes/output_tree.h
 	g++ -Wall -Wextra -Wno-format-zero-length -I includes/ -c src/output_tree.cpp -o bin/output_tree.o
+
+math_functions.o: src/math_functions.cpp includes/math_functions.h
+	g++ -Wall -Wextra -I includes/ -c src/math_functions.cpp -o bin/math_functions.o
 
 clean:
 	rm bin/start bin/functions.o bin/main.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o bin/error.o

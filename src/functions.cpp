@@ -6,6 +6,7 @@
 #include "build_tree.h"
 #include "output_tree.h"
 #include "differentiate_tree.h"
+#include "math_functions.h"
 
 static void clean_stdinput();
 
@@ -50,6 +51,24 @@ void output(const struct Node* diffTree) {
     printf("f`(x) = ");
     print_tree(diffTree);
     printf("\n");
+
+    printf("Would you like to get LaTex file (Y/N)?: ");
+    char answer = 0;
+    clean_stdinput();
+    scanf("%c", &answer);
+
+    if ((answer == 'Y') || (answer == 'y')) {
+        const char fileName[] = "main.tex";
+        FILE* stream = fopen(fileName, "w");
+        CHECK_NULL(stream, FILE_ERROR, return);
+
+        fprintf(stream, "\\documentclass{letter}\n\\begin{document}\n$f`(x) = ");
+        tex_output(diffTree, stream);
+        fprintf(stream, "$\n\\end{document}");
+
+        fclose(stream);
+    }
+
 }
 
 void dump(const struct Node* tree, const char* fileName) {
@@ -92,4 +111,9 @@ static void clean_stdinput() {
     int str = getchar();
     while ((str != EOF) && (str != '\n') && (str != '\0'))
         str = getchar();
+}
+
+bool compare(const double firstNumber, const double secondNumber) {
+    const double epsilon = 0.00001;
+    return (get_fabs(firstNumber - secondNumber) <= epsilon);
 }

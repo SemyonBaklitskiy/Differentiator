@@ -25,6 +25,5 @@ int main() {
 #endif
 
     free_memory(tree, diffTree, str);
-    
     return 0;
 }

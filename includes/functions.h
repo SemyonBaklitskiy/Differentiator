@@ -14,7 +14,7 @@ enum opAndFuncType {
     MUL     = 3,
     DIV     = 4,
     POW     = 5,
-    #define generator(funcName, func, ...) func,
+    #define generator(function, ...) function,
     #include "define.h" //code generation for enum
     #undef generator 
 };

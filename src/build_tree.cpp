@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include "math_functions.h"
 #include "node_functions.h"
 #include "error.h"
 #include "build_tree.h"
 
-#define generator(nameFunc, func, ...) nameFunc,
+#define generator(function, ...) #function,
 static const char* allowedFuncs[]  = {
-#include "../includes/define.h" 
+#include "define.h" 
 };
 #undef generator
 
@@ -233,13 +233,13 @@ static struct Node* Get_N(const char** s) {
         ++(*s);
 
     } else if (**s == 'e') {
-        node = create_number(exp(1));
+        node = create_number(e);
         CHECK_NULL(node, NO_ERRORS, return NULL);
 
         ++(*s);
 
     } else if ((**s == 'p') && (*(*s + 1) == 'i')) {
-        node = create_number(acos(-1));
+        node = create_number(pi);
         CHECK_NULL(node, NO_ERRORS, return NULL);
 
         *s += 2;
@@ -269,8 +269,8 @@ static struct Node* get_function_node(const char** s) {
 
     CHECK_NULL(leftNode, NO_ERRORS, free(functionName); return NULL);
 
-    #define generator(nameFunc, func, ...) if (strcmp(functionName, nameFunc) == 0) { node = create_function(func, leftNode); } else
-    #include "../includes/define.h" //code generation for node
+    #define generator(function, ...) if (strcmp(functionName, #function) == 0) { node = create_function(function, leftNode); } else
+    #include "define.h" //code generation for node
     {}
     #undef generator
 

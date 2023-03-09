@@ -11,7 +11,7 @@ enum errors {
     NO_BRACKET_IN_FUNCTION   = 7,
     WRONG_TYPE_OR_OP_OR_FUNC = 8,
     OUTPUT_ERROR             = 9,
-    FILE_ERROR               = 10,
+    FILE_ERROR               = 10, 
 };
 
 #define PRINT_ERROR(error) processor_of_errors(error, __FILE__, __PRETTY_FUNCTION__, __LINE__)

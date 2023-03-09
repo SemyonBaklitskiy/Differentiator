@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <math.h>
+#include "math_functions.h"
 #include "functions.h"
 #include "error.h"
 #include "node_functions.h"
@@ -21,8 +21,6 @@
 
 #define full_delete_and_change(deleteNode, copyNode) free_tree(deleteNode); struct Node* tmp = copyNode; copy_node(node, tmp); free_tree(tmp);
 #define delete_and_change(deleteNode, copyNode) free_tree(deleteNode); struct Node* tmp = copyNode; copy_node(node, tmp); free(tmp);
-
-static bool compare(const double firstNumber, const double secondNumber);
 
 struct Node* differentiate(const struct Node* node) {
     switch (type(node)) {
@@ -59,11 +57,11 @@ struct Node* differentiate(const struct Node* node) {
                 break;
 
             default: 
-                struct Node* ln = create_function(LN, Left);
-                struct Node* arg = create_operator(MUL, Right, ln);
+                struct Node* lnNode = create_function(ln, Left);
+                struct Node* arg = create_operator(MUL, Right, lnNode);
                 struct Node* result = create_operator(MUL, dup(node), diff(arg));
 
-                free(ln);
+                free(lnNode);
                 free(arg);
 
                 return result;
@@ -79,7 +77,7 @@ struct Node* differentiate(const struct Node* node) {
     case FUNCTION: 
         switch (op(node)) {
 
-        #define generator(nameFunc, func, ...) case func: return __VA_ARGS__; break;
+        #define generator(function, diffRules, ...) case function: return diffRules; break;
         #include "define.h" //code generation for diff function node
         #undef generator
         
@@ -104,6 +102,19 @@ void simplify_constants(struct Node* node) {
     simplify_constants(Right);
 
     switch (type(node)) {
+    case FUNCTION:
+        switch (op(node)) {
+
+        #define generator(function, diffRules, c_funcName) case function: if (type(Left) == NUMBER) { struct Node* tmp = Left; copy_node(node, tmp); num(node) = get_function(#c_funcName, num(tmp)); free_tree(tmp); } break;
+        #include "define.h"
+        #undef generator
+
+        default:
+            break;
+        }
+
+        break;
+
     case OPERATOR:
         switch (op(node)) {
         case ADD:
@@ -161,6 +172,10 @@ void simplify_constants(struct Node* node) {
             } else if (isNumber(Right, 1.0)) {
                 delete_and_change(Right, Left);
 
+            } else if (isNumber(Right, 0.0)) {
+                full_delete_and_change(Left, Right);
+                num(node) = 1.0;
+
             } else if (isNumber(Right, -1.0)) {
                 op(node) = DIV;
                 struct Node* tmp = Left;
@@ -181,10 +196,6 @@ void simplify_constants(struct Node* node) {
     }
 }
 
-static bool compare(const double firstNumber, const double secondNumber) {
-    const double epsilon = 0.00001;
-    return (fabs(firstNumber - secondNumber) <= epsilon);
-}
 
 #undef dup
 #undef diff
