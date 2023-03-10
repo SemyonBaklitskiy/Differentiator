@@ -232,7 +232,7 @@ static struct Node* Get_N(const char** s) {
 
         ++(*s);
 
-    } else if (**s == 'e') {
+    } else if ((**s == 'e') && (*(*s + 1) != 'x')) {
         node = create_number(e);
         CHECK_NULL(node, NO_ERRORS, return NULL);
 
@@ -323,6 +323,16 @@ static char* get_function_name(const char** s) {
         free(functionName);
         return NULL; 
     }
+
+    functionName[counter] = **s;
+    functionName[counter + 1] = '\0';
+
+    if (match(functionName)) {
+        ++(*s);
+        return functionName;
+    }
+
+    functionName[counter] = '\0';
 
     return functionName;
 }

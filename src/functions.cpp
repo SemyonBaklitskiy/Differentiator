@@ -62,7 +62,7 @@ void output(const struct Node* diffTree) {
         FILE* stream = fopen(fileName, "w");
         CHECK_NULL(stream, FILE_ERROR, return);
 
-        fprintf(stream, "\\documentclass{letter}\n\\begin{document}\n$f`(x) = ");
+        fprintf(stream, "\\documentclass{letter}\n\\usepackage{amsmath}\n\\begin{document}\n$f`(x) = ");
         tex_output(diffTree, stream);
         fprintf(stream, "$\n\\end{document}");
 

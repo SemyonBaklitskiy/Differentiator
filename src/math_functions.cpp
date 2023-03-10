@@ -1,5 +1,4 @@
 #include <math.h>
-#include <string.h>
 #include "math_functions.h"
 
 double get_e() {
@@ -14,10 +13,14 @@ double get_fabs(const double val) {
     return fabs(val);
 }
 
-double get_function(const char* str, const double val) {
-    #define generator(function, diffRules, c_funcName) if (strcmp(str, #c_funcName) == 0) return c_funcName(val);
-    #include "define.h"
+double get_function(const functions functionType, const double val) {
+    switch (functionType) {
+
+    #define generator(function, diffRules, c_funcName) case _##c_funcName##_: return c_funcName(val);
+    #include "define.h" //code generation for get_function
     #undef generator
 
-    return NAN;
+    default:
+        return NAN;
+    }
 }

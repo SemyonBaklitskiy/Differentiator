@@ -15,7 +15,7 @@
 #define Right node->right
 
 #define print_function(func) printf(func"("); print_tree(Left); printf(")");
-#define fprint_function(stream, func) fprintf(stream, "\\"); fprintf(stream, func"("); tex_output(Left, stream); fprintf(stream, ")");
+#define fprint_function(stream, func) fprintf(stream, "\\"); fprintf(stream, func"{("); tex_output(Left, stream); fprintf(stream, ")}");
 #define print_operator(openBracket, symbol, closeBracket) printf(openBracket); print_tree(Left); printf(symbol); print_tree(Right); printf(closeBracket)
 #define fprint_operator(stream, openBracket, symbol, closeBracket) fprintf(stream, openBracket); tex_output(Left, stream); fprintf(stream, symbol); tex_output(Right, stream); fprintf(stream, closeBracket)
 
@@ -108,7 +108,7 @@ void print_tree(const struct Node* node) {
             CHECK_NULL(Left, OUTPUT_ERROR, return);
             CHECK_NULL(Right, OUTPUT_ERROR, return);
 
-            if (((op(Left) == ADD) || (op(Left) == SUB)) && ((op(Right) == ADD) || (op(Right) == SUB))) {
+            if (((op(Left) == ADD) || (op(Left) == SUB)) && ((op(Right) == ADD) || (op(Right) == SUB) || (op(Right) == MUL) || (op(Right) == DIV))) {
                 print_operator("(", ")/(", ")");
 
             } else if ((op(Left) == ADD) || (op(Left) == SUB)) {

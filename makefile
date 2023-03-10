@@ -39,7 +39,7 @@ math_functions.o: src/math_functions.cpp includes/math_functions.h
 	g++ -Wall -Wextra -I includes/ -c src/math_functions.cpp -o bin/math_functions.o
 
 clean:
-	rm bin/start bin/functions.o bin/main.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o bin/error.o
+	rm bin/start bin/functions.o bin/main.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o bin/error.o bin/math_functions.o
 
 clean_dump:
-	rm bin/start bin/functions.o bin/main_dump.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o bin/error.o diff_tree.gv diff_tree.png tree.gv tree.png
+	rm bin/start bin/functions.o bin/main_dump.o bin/build_tree.o bin/differentiate_tree.o bin/node_functions.o bin/output_tree.o bin/error.o diff_tree.gv diff_tree.png tree.gv tree.png bin/math_functions.o

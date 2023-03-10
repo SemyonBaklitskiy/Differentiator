@@ -17,7 +17,7 @@
 #define function(func, left) create_function(func, left)
 #define number(val) create_number(val)
 
-#define isNumber(node, val) (type(node) == NUMBER) && compare(num(node), val)
+#define numberEquals(node, val) (type(node) == NUMBER) && compare(num(node), val)
 
 #define full_delete_and_change(deleteNode, copyNode) free_tree(deleteNode); struct Node* tmp = copyNode; copy_node(node, tmp); free_tree(tmp);
 #define delete_and_change(deleteNode, copyNode) free_tree(deleteNode); struct Node* tmp = copyNode; copy_node(node, tmp); free(tmp);
@@ -105,8 +105,8 @@ void simplify_constants(struct Node* node) {
     case FUNCTION:
         switch (op(node)) {
 
-        #define generator(function, diffRules, c_funcName) case function: if (type(Left) == NUMBER) { struct Node* tmp = Left; copy_node(node, tmp); num(node) = get_function(#c_funcName, num(tmp)); free_tree(tmp); } break;
-        #include "define.h"
+        #define generator(function, diffRules, c_funcName) case function: if (type(Left) == NUMBER) { struct Node* tmp = Left; copy_node(node, tmp); num(node) = get_function(_##c_funcName##_, num(tmp)); free_tree(tmp); } break;
+        #include "define.h" //code generation for simplify
         #undef generator
 
         default:
@@ -118,65 +118,65 @@ void simplify_constants(struct Node* node) {
     case OPERATOR:
         switch (op(node)) {
         case ADD:
-            if (isNumber(Left, 0.0)) {
+            if (numberEquals(Left, 0.0)) {
                 delete_and_change(Left, Right);
 
-            } else if (isNumber(Right, 0.0)) {
+            } else if (numberEquals(Right, 0.0)) {
                 delete_and_change(Right, Left);
             }
 
             break;
 
         case SUB: 
-            if (isNumber(Left, 0.0)) {
+            if (numberEquals(Left, 0.0)) {
                 num(Left) = -1.0;
                 op(node) = MUL;
                 simplify_constants(node);
 
-            } else if (isNumber(Right, 0.0)) {
+            } else if (numberEquals(Right, 0.0)) {
                 delete_and_change(Right, Left);
             }
 
             break;
 
         case MUL:
-            if (isNumber(Left, 0.0)) {
+            if (numberEquals(Left, 0.0)) {
                 full_delete_and_change(Right, Left);
 
-            } else if (isNumber(Right, 0.0)) {
+            } else if (numberEquals(Right, 0.0)) {
                 full_delete_and_change(Left, Right);
 
-            } else if (isNumber(Left, 1.0)) {
+            } else if (numberEquals(Left, 1.0)) {
                 delete_and_change(Left, Right);
 
-            } else if (isNumber(Right, 1.0)) {
+            } else if (numberEquals(Right, 1.0)) {
                 delete_and_change(Right, Left);
             }
 
             break;
 
         case DIV: 
-            if (isNumber(Left, 0.0)) {
+            if (numberEquals(Left, 0.0)) {
                 full_delete_and_change(Right, Left);
 
-            } else if (isNumber(Right, 1.0)) {
+            } else if (numberEquals(Right, 1.0)) {
                 delete_and_change(Right, Left);
             }
 
             break;
 
         case POW: 
-            if (isNumber(Left, 1.0)) {
+            if (numberEquals(Left, 1.0)) {
                 full_delete_and_change(Right, Left);
 
-            } else if (isNumber(Right, 1.0)) {
+            } else if (numberEquals(Right, 1.0)) {
                 delete_and_change(Right, Left);
 
-            } else if (isNumber(Right, 0.0)) {
+            } else if (numberEquals(Right, 0.0)) {
                 full_delete_and_change(Left, Right);
                 num(node) = 1.0;
 
-            } else if (isNumber(Right, -1.0)) {
+            } else if (numberEquals(Right, -1.0)) {
                 op(node) = DIV;
                 struct Node* tmp = Left;
                 Left = Right;
@@ -209,7 +209,7 @@ void simplify_constants(struct Node* node) {
 #undef function
 #undef number
 
-#undef isNumber
+#undef numberEquals
 
 #undef full_delete_and_change
 #undef delete_and_change
